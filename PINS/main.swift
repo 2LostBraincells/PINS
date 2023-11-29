@@ -15,7 +15,6 @@ var offsets = [Int].init(repeating: 0, count: 4)
 
 computeWay(results: results, offsets: offsets)
 
-
 func computeWay(results: [Bool], offsets: [Int]) {
     print("setting up")
     
@@ -53,11 +52,10 @@ func computeWay(results: [Bool], offsets: [Int]) {
     let offsetBufferPointer = offsetBuff?.contents().bindMemory(to: Int.self,
                                                                 capacity: MemoryLayout<Int>.size * count)
     
+    var resultBufferPointer = resultBuff?.contents().bindMemory(to: Bool.self,
+                                                                capacity: MemoryLayout<Bool>.size * count)
     
     print("buffers created")
-
-
-
 
     
     // Call our functions
@@ -93,6 +91,9 @@ func computeWay(results: [Bool], offsets: [Int]) {
 
         // Wait until the gpu function completes before working with any of the data
         commandBuffer?.waitUntilCompleted()
+        
+        // Dont tell me what the ! does i have no idea
+        parseBlock(results: resultBufferPointer!, index: i)
     }
     let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
     print("Time elapsed \(String(format: "%.05f", timeElapsed)) seconds")
@@ -100,4 +101,33 @@ func computeWay(results: [Bool], offsets: [Int]) {
 
     
     print("done")
+}
+
+func parseBlock(results: UnsafeMutablePointer<Bool>, index: Int) {
+    // Open the file
+    let filePath = #file
+    let dir = URL(fileURLWithPath: filePath).deletingLastPathComponent()
+    let url = dir.appendingPathComponent("output.txt")
+    print(url)
+    let fileHandle = FileHandle(forWritingAtPath: url.path)
+    
+    var str: Data;
+    
+    // Parse the valid numbers as text
+    
+    for day in 0...100 {
+        for month in 0...100 {
+            for year in 0...100 {
+                // Check that the string is valid
+                if (!results[year + 100 * month + 10000 * day]) { continue }
+                
+                // format and write the string to a file
+                str = "\(year)\(month)\(day)\(String(format: "%04d", index)) ".data(using: .utf8)!
+                fileHandle?.seekToEndOfFile()
+                fileHandle?.write(str)
+            }
+        }
+    }
+    
+    fileHandle?.closeFile()
 }
