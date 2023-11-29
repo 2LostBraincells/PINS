@@ -19,7 +19,15 @@ kernel void check_pin(constant  uint *offset        [[ buffer(0) ]],
         resultArray[index.x+100*index.y+10000*index.z] = 0b10000000;
         return;
     }
+    
+    if (month == 0) {
+        resultArray[index.x+100*index.y+10000*index.z] = 0b11000000;
+        return;
+    }
+    
     int day = offset[2] + index.z;
+
+    
     int checksum = offset[3];
     
     pin[0] = year / 10;
