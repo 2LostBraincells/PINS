@@ -7,19 +7,17 @@
 
 import MetalKit
 
-let count: UInt64 = 300000000
+let count: Int = 1_000_000
 
 // Create our random arrays
-var array1 = getRandomArray()
-var array2 = [UInt8].init()
+var results = [Bool].init(repeating: false, count: count)
+var offsets = [Int].init(repeating: 0, count: 4)
 
-// Call our functions
-computeWay(arr1: array1, arr2: array2)
-// basicForLoopWay(arr1: array1, arr2: array2)
+computeWay(results: results, offsets: offsets)
 
-func computeWay(arr1: [UInt8], arr2: [UInt8]) {
-    // Begin the process
-    let startTime = CFAbsoluteTimeGetCurrent()
+
+func computeWay(results: [Bool], offsets: [Int]) -> Int {
+    print("setting up")
     
     // The GPU we want to use
     let device = MTLCreateSystemDefaultDevice()
@@ -31,7 +29,7 @@ func computeWay(arr1: [UInt8], arr2: [UInt8]) {
     let gpuFunctionLibrary = device?.makeDefaultLibrary()
 
     // Grab our gpu function
-    let additionGPUFunction = gpuFunctionLibrary?.makeFunction(name: "addition_compute_function")
+    let additionGPUFunction = gpuFunctionLibrary?.makeFunction(name: "check_pin")
 
     var additionComputePipelineState: MTLComputePipelineState!
     do {
@@ -39,58 +37,74 @@ func computeWay(arr1: [UInt8], arr2: [UInt8]) {
     } catch {
       print(error)
     }
+
     
-    print()
-    print("GPU Way")
-
-    // Create the buffers to be sent to the gpu from our arrays
-    let arr1Buff = device?.makeBuffer(bytes: arr1,
-                                      length: MemoryLayout<UInt8>.size * count,
-                                      options: .storageModeShared)
-
-    let arr2Buff = device?.makeBuffer(bytes: arr2,
-                                      length: MemoryLayout<UInt8>.size * count,
-                                      options: .storageModeShared)
-
-    let resultBuff = device?.makeBuffer(length: MemoryLayout<UInt8>.size * count,
+    // Create results buffer
+    let offsetBuff = device?.makeBuffer(bytes: offsets,
+                                        length: MemoryLayout<Int>.size * 4,
                                         options: .storageModeShared)
-
-    // Create a buffer to be sent to the command queue
-    let commandBuffer = commandQueue?.makeCommandBuffer()
-
-    // Create an encoder to set vaulues on the compute function
-    let commandEncoder = commandBuffer?.makeComputeCommandEncoder()
-    commandEncoder?.setComputePipelineState(additionComputePipelineState)
-
-    // Set the parameters of our gpu function
-    commandEncoder?.setBuffer(arr1Buff, offset: 0, index: 0)
-    commandEncoder?.setBuffer(arr2Buff, offset: 0, index: 1)
-    commandEncoder?.setBuffer(resultBuff, offset: 0, index: 2)
-
-    // Figure out how many threads we need to use for our operation
-    let threadsPerGrid = MTLSize(width: count, height: 1, depth: 1)
-    let maxThreadsPerThreadgroup = additionComputePipelineState.maxTotalThreadsPerThreadgroup // 1024
-    let threadsPerThreadgroup = MTLSize(width: maxThreadsPerThreadgroup, height: 1, depth: 1)
-    commandEncoder?.dispatchThreads(threadsPerGrid,
-                                    threadsPerThreadgroup: threadsPerThreadgroup)
-
-    // Tell the encoder that it is done encoding.  Now we can send this off to the gpu.
-    commandEncoder?.endEncoding()
-
-    // Push this command to the command queue for processing
-    commandBuffer?.commit()
-
-    // Wait until the gpu function completes before working with any of the data
-    commandBuffer?.waitUntilCompleted()
-
-    // Get the pointer to the beginning of our data
-    var resultBufferPointer = resultBuff?.contents().bindMemory(to: UInt8.self,
-                                                                capacity: MemoryLayout<UInt8>.size * count)
     
-    // Print out the elapsed time
+    // Create results buffer
+    let resultBuff = device?.makeBuffer(bytes: results,
+                                        length: MemoryLayout<Bool>.size * count,
+                                        options: .storageModeShared)
+    
+    // Get the pointer to the beginning of our data
+    var offsetBufferPointer = offsetBuff?.contents().bindMemory(to: Int.self,
+                                                                capacity: MemoryLayout<Int>.size * count)
+    
+    
+    print("buffers created")
+
+
+
+
+    
+    // Call our functions
+    let startTime = CFAbsoluteTimeGetCurrent()
+    var x = 0
+    for i in 0...10000 {
+        print("spwaning")
+        
+        offsetBufferPointer?.advanced(by: 3).pointee = i
+        
+        // Create a buffer to be sent to the command queue
+        let commandBuffer = commandQueue?.makeCommandBuffer()
+
+        // Create an encoder to set vaulues on the compute function
+        let commandEncoder = commandBuffer?.makeComputeCommandEncoder()
+        commandEncoder?.setComputePipelineState(additionComputePipelineState)
+
+        // Set the parameters of our gpu function
+        commandEncoder?.setBuffer(offsetBuff, offset: 0, index: 0)
+        commandEncoder?.setBuffer(resultBuff, offset: 0, index: 1)
+        
+        // Figure out how many threads we need to use for our operation
+        let threadsPerGrid = MTLSize(width: 100, height: 100, depth: 100)
+        let maxThreadsPerThreadgroup = additionComputePipelineState.maxTotalThreadsPerThreadgroup // 1024
+        let threadsPerThreadgroup = MTLSize(width: maxThreadsPerThreadgroup, height: 1, depth: 1)
+        commandEncoder?.dispatchThreads(threadsPerGrid,
+                                        threadsPerThreadgroup: threadsPerThreadgroup)
+
+        // Tell the encoder that it is done encoding.  Now we can send this off to the gpu.
+        commandEncoder?.endEncoding()
+        
+        // Push this command to the command queue for processing
+        commandBuffer?.commit()
+
+        // Wait until the gpu function completes before working with any of the data
+        commandBuffer?.waitUntilCompleted()
+    }
     let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
     print("Time elapsed \(String(format: "%.05f", timeElapsed)) seconds")
-    print()
+
+
+    
+    print("done")
+
+
+    
+    return 1
 }
 
 func basicForLoopWay(arr1: [UInt8], arr2: [UInt8]) {

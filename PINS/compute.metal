@@ -8,11 +8,33 @@
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void addition_compute_function(constant uint *arr1        [[ buffer(0) ]],
-                                      constant uint *arr2        [[ buffer(1) ]],
-                                      device   uint *resultArray [[ buffer(2) ]],
-                                               uint   index [[ thread_position_in_grid ]]) {
+kernel void check_pin(constant  uint *offset        [[ buffer(0) ]],
+                      device    bool *resultArray   [[ buffer(1) ]],
+                                uint3 index         [[ thread_position_in_grid ]]
+                      ) {
+    int pin[10];
+    int year = offset[0] + index.x;
+    int month = offset[1] + index.y;
+    int day = offset[2] + index.z;
+    int checksum = offset[3];
+    
+    pin[0] = year / 10;
+    pin[1] = year % 10;
+    pin[2] = month / 10;
+    pin[3] = month % 10;
+    pin[4] = day / 10;
+    pin[5] = day % 10;
+    
+    pin[6] = checksum / 1000;
+    pin[7] = checksum / 100;
+    pin[8] = checksum / 10;
+    pin[9] = checksum % 10;
+    
+    int sum = 0;
+    
     for (int i = 0; i < 10; i++) {
-        resultArray[index] = arr1[index] + (!(i & 0b1)) * (arr1[index] + (arr1[index] >= 5) * (-9));
+        sum += pin[i] + (!(i & 0b1)) * (pin[i] + (pin[i] >= 5) * (-9));
     }
+    
+    resultArray[index.x+100*index.y+10000*index.z] = sum % 10 == 0;
 }
