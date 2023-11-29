@@ -84,8 +84,8 @@ func computeWay(results: [Bool], offsets: [Int]) {
     
     // Call our functions
     let startTime = CFAbsoluteTimeGetCurrent()
-    for i in 0...9999 {
-        print("spwaning \(i + 1) / 10000")
+    for i in 0...10000 {
+        print(String(Double(i)/100.0) + "%")
         
         offsetBufferPointer?.advanced(by: 3).pointee = i
         
