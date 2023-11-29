@@ -19,12 +19,12 @@ kernel void check_pin(constant  uint *offset        [[ buffer(0) ]],
     
     int month = offset[1] + index.y;
     if (month > 12) {
-        resultArray[index.x+100*index.y+10000*index.z] = 0b10000000;
+        resultArray[index.x+100*index.y+10000*index.z] = false;
         return;
     }
     
     if (month == 0) {
-        resultArray[index.x+100*index.y+10000*index.z] = 0b11000000;
+        resultArray[index.x+100*index.y+10000*index.z] = false;
         return;
     }
     
@@ -32,12 +32,12 @@ kernel void check_pin(constant  uint *offset        [[ buffer(0) ]],
     
     int day = offset[2] + index.z;
     if (day > 91) {
-        resultArray[index.x+100*index.y+10000*index.z] = 0b00100000;
+        resultArray[index.x+100*index.y+10000*index.z] = false;
         return;
     }
     
     if (day == 0) {
-        resultArray[index.x+100*index.y+10000*index.z] = 0b00110000;
+        resultArray[index.x+100*index.y+10000*index.z] = false;
         return;
     }
     
