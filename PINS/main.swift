@@ -16,7 +16,7 @@ var offsets = [Int].init(repeating: 0, count: 4)
 computeWay(results: results, offsets: offsets)
 
 
-func computeWay(results: [Bool], offsets: [Int]) -> Int {
+func computeWay(results: [Bool], offsets: [Int]) {
     print("setting up")
     
     // The GPU we want to use
@@ -50,7 +50,7 @@ func computeWay(results: [Bool], offsets: [Int]) -> Int {
                                         options: .storageModeShared)
     
     // Get the pointer to the beginning of our data
-    var offsetBufferPointer = offsetBuff?.contents().bindMemory(to: Int.self,
+    let offsetBufferPointer = offsetBuff?.contents().bindMemory(to: Int.self,
                                                                 capacity: MemoryLayout<Int>.size * count)
     
     
@@ -62,9 +62,8 @@ func computeWay(results: [Bool], offsets: [Int]) -> Int {
     
     // Call our functions
     let startTime = CFAbsoluteTimeGetCurrent()
-    var x = 0
     for i in 0...10000 {
-        print("spwaning")
+        print(String(Double(i)/100.0) + "%")
         
         offsetBufferPointer?.advanced(by: 3).pointee = i
         
@@ -101,45 +100,4 @@ func computeWay(results: [Bool], offsets: [Int]) -> Int {
 
     
     print("done")
-
-
-    
-    return 1
-}
-
-func basicForLoopWay(arr1: [UInt8], arr2: [UInt8]) {
-    print("CPU Way")
-    
-    // Begin the process
-    let startTime = CFAbsoluteTimeGetCurrent()
-
-    var result = [UInt8].init(repeating: 0, count: count)
-
-    // Process our additions of the arrays together
-    for i in 0..<count {
-        result[i] = arr1[i] + arr2[i]
-    }
-
-    // Print out the results
-    for i in 0..<3 {
-        print("\(arr1[i]) + \(arr2[i]) = \(result[i])")
-    }
-
-    // Print out the elapsed time
-    let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
-    print("Time elapsed \(String(format: "%.05f", timeElapsed)) seconds")
-
-    print()
-}
-
-// Helper function
-func getRandomArray()->[UInt8] {
-    let startTime = CFAbsoluteTimeGetCurrent()
-    var result = [UInt8].init(repeating: 0, count: count)
-    //for i in 0..<count {
-    //    result[i] = UInt8(arc4random_uniform(10))
-    //}
-    let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
-    print("Time elapsed \(String(format: "%.05f", timeElapsed)) seconds")
-    return result
 }
