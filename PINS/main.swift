@@ -84,7 +84,7 @@ func computeWay(results: [Bool], offsets: [Int]) {
     
     // Call our functions
     let startTime = CFAbsoluteTimeGetCurrent()
-    for i in 0...10000 {
+    for i in 0...9999 {
         print(String(Double(i)/100.0) + "%")
         
         offsetBufferPointer?.advanced(by: 3).pointee = i
@@ -136,8 +136,8 @@ func parseBlock(results: UnsafeMutablePointer<Bool>, index: Int, fileHandle: Fil
     var str: Data = "".data(using: .utf8)!;
     
     // Parse the valid numbers as text
-    for day in 0...31 { // Max of 31 days
-        for month in 0...12 { // Max of 12 months
+    for day in 1...31 { // Max of 31 days
+        for month in 1...12 { // Max of 12 months
             for year in 0...99 {
                 // Check that the string is valid
                 if (!results[year + 100 * month + 10000 * day]) { continue }
