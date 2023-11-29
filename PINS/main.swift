@@ -15,8 +15,7 @@ var offsets = [Int].init(repeating: 0, count: 4)
 
 computeWay(results: results, offsets: offsets)
 
-
-func computeWay(results: [Bool], offsets: [Int]) -> Int {
+func computeWay(results: [Bool], offsets: [Int]) {
     print("setting up")
     
     // The GPU we want to use
@@ -50,21 +49,19 @@ func computeWay(results: [Bool], offsets: [Int]) -> Int {
                                         options: .storageModeShared)
     
     // Get the pointer to the beginning of our data
-    var offsetBufferPointer = offsetBuff?.contents().bindMemory(to: Int.self,
+    let offsetBufferPointer = offsetBuff?.contents().bindMemory(to: Int.self,
                                                                 capacity: MemoryLayout<Int>.size * count)
     
+    var resultBufferPointer = resultBuff?.contents().bindMemory(to: Bool.self,
+                                                                capacity: MemoryLayout<Bool>.size * count)
     
     print("buffers created")
-
-
-
 
     
     // Call our functions
     let startTime = CFAbsoluteTimeGetCurrent()
-    var x = 0
     for i in 0...10000 {
-        print("spwaning")
+        print("spwaning \(i + 1) / 10000")
         
         offsetBufferPointer?.advanced(by: 3).pointee = i
         
@@ -94,6 +91,9 @@ func computeWay(results: [Bool], offsets: [Int]) -> Int {
 
         // Wait until the gpu function completes before working with any of the data
         commandBuffer?.waitUntilCompleted()
+        
+        // Dont tell me what the ! does i have no idea
+        parseBlock(results: resultBufferPointer!, index: i)
     }
     let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
     print("Time elapsed \(String(format: "%.05f", timeElapsed)) seconds")
@@ -101,45 +101,33 @@ func computeWay(results: [Bool], offsets: [Int]) -> Int {
 
     
     print("done")
-
-
-    
-    return 1
 }
 
-func basicForLoopWay(arr1: [UInt8], arr2: [UInt8]) {
-    print("CPU Way")
+func parseBlock(results: UnsafeMutablePointer<Bool>, index: Int) {
+    // Open the file
+    let filePath = #file
+    let dir = URL(fileURLWithPath: filePath).deletingLastPathComponent()
+    let url = dir.appendingPathComponent("output.txt")
+    print(url)
+    let fileHandle = FileHandle(forWritingAtPath: url.path)
     
-    // Begin the process
-    let startTime = CFAbsoluteTimeGetCurrent()
-
-    var result = [UInt8].init(repeating: 0, count: count)
-
-    // Process our additions of the arrays together
-    for i in 0..<count {
-        result[i] = arr1[i] + arr2[i]
+    var str: Data;
+    
+    // Parse the valid numbers as text
+    
+    for day in 0...100 {
+        for month in 0...100 {
+            for year in 0...100 {
+                // Check that the string is valid
+                if (!results[year + 100 * month + 10000 * day]) { continue }
+                
+                // format and write the string to a file
+                str = "\(year)\(month)\(day)\(String(format: "%04d", index)) ".data(using: .utf8)!
+                fileHandle?.seekToEndOfFile()
+                fileHandle?.write(str)
+            }
+        }
     }
-
-    // Print out the results
-    for i in 0..<3 {
-        print("\(arr1[i]) + \(arr2[i]) = \(result[i])")
-    }
-
-    // Print out the elapsed time
-    let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
-    print("Time elapsed \(String(format: "%.05f", timeElapsed)) seconds")
-
-    print()
-}
-
-// Helper function
-func getRandomArray()->[UInt8] {
-    let startTime = CFAbsoluteTimeGetCurrent()
-    var result = [UInt8].init(repeating: 0, count: count)
-    //for i in 0..<count {
-    //    result[i] = UInt8(arc4random_uniform(10))
-    //}
-    let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
-    print("Time elapsed \(String(format: "%.05f", timeElapsed)) seconds")
-    return result
+    
+    fileHandle?.closeFile()
 }

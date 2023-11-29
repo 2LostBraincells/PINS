@@ -20,8 +20,10 @@ kernel void check_pin(constant  uint *offset        [[ buffer(0) ]],
     
     pin[0] = year / 10;
     pin[1] = year % 10;
+    
     pin[2] = month / 10;
     pin[3] = month % 10;
+    
     pin[4] = day / 10;
     pin[5] = day % 10;
     
@@ -36,5 +38,5 @@ kernel void check_pin(constant  uint *offset        [[ buffer(0) ]],
         sum += pin[i] + (!(i & 0b1)) * (pin[i] + (pin[i] >= 5) * (-9));
     }
     
-    resultArray[index.x+100*index.y+10000*index.z] = sum % 10 == 0;
+    resultArray[index.x + 100 * index.y + 10000 * index.z] = sum % 10 == 0;
 }
