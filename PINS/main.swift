@@ -133,7 +133,7 @@ func computeWay(results: [Bool], offsets: [Int]) {
 
 func parseBlock(results: UnsafeMutablePointer<Bool>, index: Int, fileHandle: FileHandle) {
     
-    var str: Data;
+    var str: Data = "".data(using: .utf8)!;
     
     // Parse the valid numbers as text
     for day in 1...31 { // Max of 31 days
@@ -143,15 +143,18 @@ func parseBlock(results: UnsafeMutablePointer<Bool>, index: Int, fileHandle: Fil
                 if (!results[year + 100 * month + 10000 * day]) { continue }
                 
                 // format string and encode
-                str = "\(String(format: "%02d", year))\(String(format: "%02d", month))\(String(format: "%02d", day))\(String(format: "%04d", index)) "
+                str.append("\(String(format: "%02d", year))\(String(format: "%02d", month))\(String(format: "%02d", day))\(String(format: "%04d", index)) "
                         .data(using: .utf8)! //                 pogging space right here ^
+                           )
                 
-                // Write to file
-                fileHandle.seekToEndOfFile()
-                fileHandle.write(str)
+                
             }
         }
     }
+    
+    // Write to file
+    fileHandle.seekToEndOfFile()
+    fileHandle.write(str)
     
     fileHandle.seekToEndOfFile()
     fileHandle.write("\n".data(using: .utf8)!)
