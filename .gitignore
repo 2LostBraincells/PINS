@@ -1,2 +1,7 @@
 # Output file
 output.txt
+
+
+# Added by cargo
+
+/target
