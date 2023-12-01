@@ -1,7 +1,7 @@
 use metal::DeviceRef;
 use metal::Device;
 // Compiled metal lib 
-const LIB_DATA: &[u8] = include_bytes!("compute.metallib");
+const LIB_DATA: &[u8] = include_bytes!("shaders/compute.metallib");
 
 fn check(pin: [u8;10]) -> bool {
     //! Check a single PIN using the CPU

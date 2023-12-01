@@ -1,5 +1,7 @@
 echo "\n==== compiling shader ====\n"
+cd shaders
 ./makelib.sh
+cd ..
 
 echo "\n==== building for release ====\n"
 cargo build --release
