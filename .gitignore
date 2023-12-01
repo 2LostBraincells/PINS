@@ -2,6 +2,6 @@
 output.txt
 
 
-# Added by cargo
-
+# Compiled files
 /target
+*.metal
