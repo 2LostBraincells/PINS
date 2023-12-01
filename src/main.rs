@@ -4,9 +4,15 @@ use std::slice;
 // Compiled metal lib 
 const LIB_DATA: &[u8] = include_bytes!("shaders/compute.metallib");
 
+const START_YEAR: usize = 06;
+const START_MONTH: usize = 10;
+const START_DAY: usize = 09;
+
+const CHECKSUM: usize = 2454;
+
 const YEARS: usize = 10;
 const MONTHS: usize = 1;
-const DAYS: usize = 1;
+const DAYS: usize = 10;
 
 const TOTAL: usize = YEARS * MONTHS * DAYS;
 
@@ -46,7 +52,15 @@ fn main() {
         .new_compute_pipeline_state_with_function(&function)
         .unwrap();
 
-    let offsets: Vec<u16> = vec![6, 10, 9, 2454];
+    let offsets: Vec<u16> = vec![
+        START_YEAR.try_into().unwrap(),
+        START_MONTH.try_into().unwrap(),
+        START_DAY.try_into().unwrap(),
+        CHECKSUM.try_into().unwrap(),
+        YEARS.try_into().unwrap(),
+        MONTHS.try_into().unwrap(),
+        DAYS.try_into().unwrap()
+    ];
 
     let length = offsets.len() as u64;
     let size = length * core::mem::size_of::<u16>() as u64;
@@ -94,5 +108,21 @@ fn main() {
     let ptr = buffer_result.contents() as *const bool;
     let len = buffer_result.length() as usize / mem::size_of::<bool>();
     let slice = unsafe { slice::from_raw_parts(ptr, len) };
-    dbg!(slice);
+
+    for year in 0..YEARS{
+        for month in 0..MONTHS{
+            for day in 0..DAYS{
+                if !slice[year + YEARS*month + YEARS*MONTHS*day] {
+                    continue;
+                }
+                print!("{:02}", year + START_YEAR);
+                print!("{:02}", month + START_MONTH);
+                print!("{:02}", day + START_DAY);
+                print!("{:04}", CHECKSUM);
+                println!();
+            }
+        }
+    }
+
+
 }
