@@ -3,6 +3,15 @@ use metal::Device;
 // Compiled metal lib 
 const LIB_DATA: &[u8] = include_bytes!("compute.metallib");
 
+fn check(pin: [u8;10]) -> bool {
+    //! Check a single PIN using the CPU
+    //!
+    //! This function is meant to be used to troubleshoot and test all other functions and methods
+    //! Its essentialy the single source of truth that all other functions should follow
+
+    return false;
+}
+
 fn main() {
     println!("Hello, world!");
 
