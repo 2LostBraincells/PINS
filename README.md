@@ -1,6 +1,6 @@
-# Swedish Personal Identity Number Validator
+# Personal Identity Number Validator
 
-A hyper optimized program for validating Personal Identity Numbers (or PINS for short)
+A hyper optimized program for validating Personal Identity Numbers (or pinv for short)
 
 ## Usage
 
@@ -12,7 +12,7 @@ cd src
 cargo build
 ```
 
-The compiled executable can then be found in `target/release/build` under the name `PINS`
+The compiled executable can then be found in `target/release/build` under the name `pinv`
 
 ### Benchmark
 To get a rough benchmark run
