@@ -4,15 +4,15 @@ use std::slice;
 // Compiled metal lib 
 const LIB_DATA: &[u8] = include_bytes!("shaders/compute.metallib");
 
-const START_YEAR: usize = 06;
-const START_MONTH: usize = 10;
-const START_DAY: usize = 09;
+const START_YEAR: usize = 0;
+const START_MONTH: usize = 0;
+const START_DAY: usize = 0;
 
 const CHECKSUM: usize = 2454;
 
-const YEARS: usize = 10;
-const MONTHS: usize = 1;
-const DAYS: usize = 10;
+const YEARS: usize = 100;
+const MONTHS: usize = 100;
+const DAYS: usize = 100;
 
 const TOTAL: usize = YEARS * MONTHS * DAYS;
 
@@ -53,13 +53,13 @@ fn main() {
         .unwrap();
 
     let offsets: Vec<u16> = vec![
-        START_YEAR.try_into().unwrap(),
-        START_MONTH.try_into().unwrap(),
-        START_DAY.try_into().unwrap(),
-        CHECKSUM.try_into().unwrap(),
-        YEARS.try_into().unwrap(),
-        MONTHS.try_into().unwrap(),
-        DAYS.try_into().unwrap()
+        START_YEAR  .try_into().unwrap(),
+        START_MONTH .try_into().unwrap(),
+        START_DAY   .try_into().unwrap(),
+        CHECKSUM    .try_into().unwrap(),
+        YEARS       .try_into().unwrap(),
+        MONTHS      .try_into().unwrap(),
+        DAYS        .try_into().unwrap()
     ];
 
     let length = offsets.len() as u64;
@@ -75,6 +75,7 @@ fn main() {
         (TOTAL * core::mem::size_of::<bool>()) as u64, // length
         MTLResourceOptions::StorageModeShared, // Storage mode
     );
+
 
     let command_queue = device.new_command_queue();
     let command_buffer = command_queue.new_command_buffer();
@@ -95,8 +96,8 @@ fn main() {
 
     let threadgroup_size = metal::MTLSize::new(
         YEARS.try_into().unwrap(), //width
-        MONTHS.try_into().unwrap(), // height
-        DAYS.try_into().unwrap()); //depth
+        1, // height
+        1); //depth
 
     compute_encoder.dispatch_threads(grid_size, threadgroup_size);
 
@@ -108,6 +109,7 @@ fn main() {
     let ptr = buffer_result.contents() as *const bool;
     let len = buffer_result.length() as usize / mem::size_of::<bool>();
     let slice = unsafe { slice::from_raw_parts(ptr, len) };
+
 
     for year in 0..YEARS{
         for month in 0..MONTHS{
