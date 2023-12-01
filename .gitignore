@@ -4,4 +4,4 @@ output.txt
 
 # Compiled files
 /target
-*.metal
+*.metallib
