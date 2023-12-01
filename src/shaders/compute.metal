@@ -16,16 +16,17 @@ kernel void check_individual (
     results[index.x] = nums[index.x];
 }
 
-kernel void check_pin(constant  unsigned short *offset        [[ buffer(0) ]],
-                      device    char *resultArray   [[ buffer(1) ]],
-                                uint3 index         [[ thread_position_in_grid ]]
-                      ) {
+kernel void check_pin(
+      constant  unsigned short *constants [[ buffer(0) ]],
+      device    char *resultArray         [[ buffer(1) ]],
+                uint3 index               [[ thread_position_in_grid ]]
+  ) {
     int pin[10];
-    int year = offset[0] + index.x;
-    int month = offset[1] + index.y;
-    int day = offset[2] + index.z;
+    int year = constants[0] + index.x;
+    int month = constants[1] + index.y;
+    int day = constants[2] + index.z;
     
-    int checksum = offset[3];
+    int checksum = constants[3];
     
     pin[0] = year / 10;
     pin[1] = year % 10;
@@ -47,7 +48,7 @@ kernel void check_pin(constant  unsigned short *offset        [[ buffer(0) ]],
         sum += pin[i] + ((i & 0b1) ^ 0b1) * (pin[i] + ((pin[i] >= 5) * (-9)));
     }
     
-    resultArray[index.x + 100 * index.y + 10000 * index.z] = sum % 10 == 0;
+    resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = (sum % 10) == 0;
 }
 
 [[kernel]]
