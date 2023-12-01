@@ -1,3 +1,5 @@
+use metal::DeviceRef;
+use metal::Device;
 // Compiled metal lib 
 const LIB_DATA: &[u8] = include_bytes!("compute.metallib");
 
