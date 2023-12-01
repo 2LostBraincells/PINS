@@ -21,11 +21,40 @@ kernel void check_pin(
       device    char *resultArray         [[ buffer(1) ]],
                 uint3 index               [[ thread_position_in_grid ]]
   ) {
+    
+
     int pin[10];
     int year = constants[0] + index.x;
     int month = constants[1] + index.y;
     int day = constants[2] + index.z;
-    
+  
+    int greatest_day = 0;
+
+    switch (year) {
+      case 2:
+        greatest_day = 28 + (year % 4 == 0);
+        break;
+      case 4:
+      case 6:
+      case 9:
+      case 11:
+        greatest_day = 30;
+        break;
+      default:
+        greatest_day = 31;
+        break;
+    }
+
+    if (month < 1 || month > 12) {
+      resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
+      return;
+    }
+
+    if (day == 0 || (day > greatest_day && day < 61) || day > greatest_day + 60) {
+      resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
+      return;
+    }
+
     int checksum = constants[3];
     
     pin[0] = year / 10;
