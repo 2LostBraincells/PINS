@@ -18,4 +18,3 @@ xcrun -sdk macosx metallib compute.air -o compute.metallib
 
 rm compute.air
 ```
-This means that the .metal file has to be named compute.metal, unless you want to recompile the shellscript
