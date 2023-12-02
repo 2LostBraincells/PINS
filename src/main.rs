@@ -1,8 +1,10 @@
 use metal::*;
 use std::mem;
 use std::slice;
+
+mod gpu;
+
 // Compiled metal lib 
-const LIB_DATA: &[u8] = include_bytes!("shaders/compute.metallib");
 
 const START_YEAR: usize = 0;
 const START_MONTH: usize = 0;
@@ -40,18 +42,15 @@ fn luhns_check() {
 }
 
 fn main() {
-    // Device reference
-    let device: &DeviceRef = &Device::system_default().expect("No device found");
-
-    // Library reference and function reference
-    let lib = device.new_library_with_data(LIB_DATA).unwrap();
-    let function = lib.get_function("check_pin", None).unwrap();
-
-    // Pipeline declaration
-    let pipeline = device
-        .new_compute_pipeline_state_with_function(&function)
-        .unwrap();
-
+    // Setup GPU
+    let device = &gpu::get_device();
+    let queue = device.new_command_queue();
+    let buffer = queue.new_command_buffer();
+    let encoder = buffer.new_compute_command_encoder();
+    
+    // setup shader function
+    gpu::use_function(&device, "check_pin", encoder);
+    
     let offsets: Vec<u16> = vec![
         START_YEAR  .try_into().unwrap(),
         START_MONTH .try_into().unwrap(),
@@ -77,12 +76,8 @@ fn main() {
     );
 
 
-    let command_queue = device.new_command_queue();
-    let command_buffer = command_queue.new_command_buffer();
-    let compute_encoder = command_buffer.new_compute_command_encoder();
 
-    compute_encoder.set_compute_pipeline_state(&pipeline);
-    compute_encoder.set_buffers(
+    encoder.set_buffers(
         0, // start index
         &[Some(&buffer_a), Some(&buffer_result)], //buffers
         &[0; 2], //offset
@@ -94,17 +89,12 @@ fn main() {
         MONTHS.try_into().unwrap(), // height
         DAYS.try_into().unwrap()); //depth
 
-    let threadgroup_size = metal::MTLSize::new(
-        YEARS.try_into().unwrap(), //width
-        1, // height
-        1); //depth
-
-    compute_encoder.dispatch_threads(grid_size, threadgroup_size);
+    encoder.dispatch_threads(grid_size, gpu::max_group());
 
 
-    compute_encoder.end_encoding();
-    command_buffer.commit();
-    command_buffer.wait_until_completed();
+    encoder.end_encoding();
+    buffer.commit();
+    buffer.wait_until_completed();
 
     let ptr = buffer_result.contents() as *const bool;
     let len = buffer_result.length() as usize / mem::size_of::<bool>();
@@ -125,6 +115,4 @@ fn main() {
             }
         }
     }
-
-
 }
