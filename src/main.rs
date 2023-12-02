@@ -3,6 +3,7 @@ use std::mem;
 use std::slice;
 
 mod gpu;
+mod parser;
 
 // Compiled metal lib 
 
@@ -51,7 +52,7 @@ fn main() {
     // setup shader function
     gpu::use_function(&device, "check_pin", encoder);
     
-    let offsets: Vec<u16> = vec![
+    let offsets: [u16; 7] = [
         START_YEAR  .try_into().unwrap(),
         START_MONTH .try_into().unwrap(),
         START_DAY   .try_into().unwrap(),
@@ -76,12 +77,8 @@ fn main() {
     );
 
 
-
-    encoder.set_buffers(
-        0, // start index
-        &[Some(&buffer_a), Some(&buffer_result)], //buffers
-        &[0; 2], //offset
-    );
+    encoder.set_buffer(0, Some(&buffer_a), 0);
+    encoder.set_buffer(1, Some(&buffer_result), 0);
 
 
     let grid_size = metal::MTLSize::new(
@@ -91,7 +88,6 @@ fn main() {
 
     encoder.dispatch_threads(grid_size, gpu::max_group());
 
-
     encoder.end_encoding();
     buffer.commit();
     buffer.wait_until_completed();
@@ -100,19 +96,7 @@ fn main() {
     let len = buffer_result.length() as usize / mem::size_of::<bool>();
     let slice = unsafe { slice::from_raw_parts(ptr, len) };
 
+    parser::print(&offsets, slice);
 
-    for year in 0..YEARS{
-        for month in 0..MONTHS{
-            for day in 0..DAYS{
-                if !slice[year + YEARS*month + YEARS*MONTHS*day] {
-                    continue;
-                }
-                print!("{:02}", year + START_YEAR);
-                print!("{:02}", month + START_MONTH);
-                print!("{:02}", day + START_DAY);
-                print!("{:04}", CHECKSUM);
-                println!();
-            }
-        }
-    }
+
 }
