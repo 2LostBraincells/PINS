@@ -77,6 +77,8 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         MONTHS as u64, // height
         DAYS as u64); //depth
 
+    let group = gpu::max_group();
+
 
     // setup buffers
     let buffer_offsets = device.new_buffer_with_data(
@@ -99,18 +101,17 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         .open("output.txt").unwrap();
 
 
+    let a_ptr = buffer_offsets.contents() as *mut u16;
 
     println!("{}: Computing...", id);
     for i in (id..CUBOIDS).step_by(steps.into()) {
-        // let now = Instant::now();
 
         // Update checksum
         offsets[3] = i;
 
-        let a_ptr = buffer_offsets.contents() as *mut u16;
         unsafe { 
             let ptr = a_ptr.offset(3);
-            *ptr = i
+            *ptr = i;
         }
 
         let buffer = queue.new_command_buffer();
@@ -119,57 +120,47 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         // setup shader function
         gpu::use_function(&device, "check_pin", encoder);
 
+
         // init buffers
         encoder.set_buffer(0, Some(&buffer_offsets), 0);
         encoder.set_buffer(1, Some(&buffer_result), 0);
 
-        // Compute
-        encoder.dispatch_threads(grid_size, gpu::max_group());
-        encoder.end_encoding();
-        // setup_timer += now.elapsed();
 
-        // let now = Instant::now();
+        // Compute
+        encoder.dispatch_threads(grid_size, group);
+        encoder.end_encoding();
         buffer.commit();
         buffer.wait_until_completed();
-        // compute_timer += now.elapsed();
 
-        // let now = Instant::now();
 
         // results
         let parsed = parser::parse(&offsets, buffer_result.clone());
         let bytes = parsed.as_bytes();
-        // parse_timer += now.elapsed();
+
 
         // wait for self's turn to write to file
-        // let now = Instant::now();
         while *reservation.lock().unwrap() != id {}
-        // wait_timer += now.elapsed();
-
-        *reservation.lock().unwrap() = id;
         
-        let now = Instant::now();
+        // write pre-computed contents to file
         file.write_all(bytes).unwrap();
-        // write_timer += now.elapsed();
 
-        if id == steps - 1 {
-            *reservation.lock().unwrap() = 0;
-        } else {
-            *reservation.lock().unwrap() = id + 1;
-        }
+        // increment index
+        *reservation.lock().unwrap() = (id != (steps - 1)) as u16 * (id + 1)
     }
 }
 
 fn main() {
-
     let writer = Arc::new(Mutex::new(0));
     let mut workers = vec![];
 
+    // spawn threads
     for i in 0..WORKERS {
         let writer = Arc::clone(&writer);
         let handle = thread::spawn(move || worker(writer, i.try_into().unwrap(), WORKERS.try_into().unwrap()));
         workers.push(handle);
     }
 
+    // wait for threads to finish
     for handle in workers {
         handle.join().unwrap();
     }
