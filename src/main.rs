@@ -182,10 +182,7 @@ fn main() {
         workers.push(handle);
     }
 
-
     for handle in workers {
         handle.join().unwrap();
     }
-
-
 }
