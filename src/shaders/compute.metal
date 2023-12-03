@@ -74,7 +74,8 @@ kernel void check_pin(
     
     int sum = 0;
     
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i += 2) {
+        /*
         if (i % 2 == 0) {
           if (pin[i] * 2 > 9) {
             sum += pin[i] * 2 % 10 + 1;
@@ -88,8 +89,14 @@ kernel void check_pin(
         {
           sum += pin[i];
         }
-        // sum += pin[i] + ((i & 0b1) ^ 0b1) * (pin[i] + ((pin[i] >= 5) * (-9)));
+        */
+        sum += pin[i] + (pin[i] + ((pin[i] >= 5) * (-9)));
     }
+
+    for (int i = 1; i < 10; i += 2) {
+      sum += pin[i];
+    }
+
 
     /*
     sum += (pin[0] > 5) ? pin[0] * 2 % 10 + 1 : pin[0] * 2;
