@@ -150,6 +150,9 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 }
 
 fn main() {
+
+    let now = Instant::now();
+
     let writer = Arc::new(Mutex::new(0));
     let mut workers = vec![];
 
@@ -165,5 +168,5 @@ fn main() {
         handle.join().unwrap();
     }
 
-    println!("Done!");
+    println!("Done! ({}ms)", now.elapsed().as_millis());
 }

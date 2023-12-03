@@ -5,9 +5,9 @@ const LIB_DATA: &[u8] = include_bytes!("shaders/compute.metallib");
 pub fn max_group() -> MTLSize {
 
     return metal::MTLSize::new(
-        128,//width
-        1, // height
-        1); //depth
+        10,//width
+        10, // height
+        10); //depth
 }
 
 pub fn get_device() -> Device {
