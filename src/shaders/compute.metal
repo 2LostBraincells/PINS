@@ -30,14 +30,14 @@ kernel void check_pin(
   
     int greatest_day = 0;
 
-    switch (year) {
-      case 2:
+    switch (month) {
+      case 1:
         greatest_day = 28 + (year % 4 == 0);
         break;
-      case 4:
-      case 6:
-      case 9:
-      case 11:
+      case 3:
+      case 5:
+      case 8:
+      case 10:
         greatest_day = 30;
         break;
       default:
