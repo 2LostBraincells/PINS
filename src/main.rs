@@ -1,12 +1,10 @@
 use metal::*;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::fs::File;
 use std::mem;
 use std::slice;
-use indicatif::ProgressBar;
-use indicatif::MultiProgress;
-use indicatif::ProgressStyle;
 
 mod gpu;
 mod parser;
@@ -49,7 +47,7 @@ fn luhns_check() {
 }
 
 
-fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16, progress: Arc<Mutex<ProgressBar>>) {
+fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     //! A compute worker
     //!
     //! Validates all pins with checksum 0 to 10_000 with a step size of [steps] and a inital
@@ -80,10 +78,10 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16, progress: Arc<Mutex
 
     let length = offsets.len() as u64;
     let size = length * core::mem::size_of::<u16>() as u64;
-    println!("Worker {} will validating {} pins in {} groups, each group containing {} potential pins", id, TOTAL * ((CUBOIDS / steps) as usize), CUBOIDS, TOTAL);
+    println!("{}: will validate {} pins in {} groups, each group containing {} potential pins", id, TOTAL * ((CUBOIDS / steps) as usize), CUBOIDS / steps, TOTAL);
 
     // Setup GPU
-    println!("{}, Setting up GPU...", id);
+    println!("{}: Setting up GPU...", id);
     let device = &gpu::get_device();
     let queue = device.new_command_queue();
 
@@ -96,7 +94,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16, progress: Arc<Mutex
 
 
     // setup buffers
-    println!("{}, Creating buffers", id);
+    println!("{}: Creating buffers", id);
     let buffer_offsets = device.new_buffer_with_data(
         unsafe { mem::transmute(offsets.as_ptr()) }, // bytes
         size, // length
@@ -110,11 +108,12 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16, progress: Arc<Mutex
     );
 
 
-    progress.lock().unwrap().set_style(ProgressStyle::with_template("[{elapsed_precise}] {bar:40.white/black} {pos:>7}/{len:7} {msg}").unwrap());
+    //progress.lock().unwrap().set_style(ProgressStyle::with_template("[{elapsed_precise}] {bar:40.white/black} {pos:>7}/{len:7} {msg}").unwrap());
 
+    println!("{}: Computing...", id);
     for i in (id..CUBOIDS).step_by(steps.into()) {
-        progress.lock().unwrap().inc(1);
-        progress.lock().unwrap().set_message("Computing");
+        // progress.lock().unwrap().inc(1);
+        // progress.lock().unwrap().set_message("Computing");
 
         // Update checksum
         offsets[3] = i;
@@ -145,13 +144,22 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16, progress: Arc<Mutex
         let ptr = buffer_result.contents() as *const bool;
         let len = buffer_result.length() as usize / mem::size_of::<bool>();
         let slice = unsafe { slice::from_raw_parts(ptr, len) };
-        progress.lock().unwrap().set_message("Waiting");
+
+        let parsed = parser::parse(&offsets, slice);
+        let bytes = parsed.as_bytes();
 
         while *reservation.lock().unwrap() != id {}
         *reservation.lock().unwrap() = id;
         
-        progress.lock().unwrap().set_message("Writing");
-        parser::write(&offsets, slice);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(false)
+            .open("output.txt").unwrap();
+
+        file.write_all(bytes).unwrap();
+
+
 
         if id == steps - 1 {
             *reservation.lock().unwrap() = 0;
@@ -159,8 +167,8 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16, progress: Arc<Mutex
             *reservation.lock().unwrap() = id+1;
         }
     }
-    progress.lock().unwrap().set_message("Done");
-    progress.lock().unwrap().finish();
+
+    println!("{}: Done", id);
 }
 
 fn main() {
@@ -169,13 +177,8 @@ fn main() {
     let writer_a = Arc::clone(&writer);
     let writer_b = Arc::clone(&writer);
 
-    let progress = MultiProgress::new();
-
-    let prgs_a = Arc::new(Mutex::new(progress.add(ProgressBar::new((CUBOIDS/2).into()))));
-    let prgs_b = Arc::new(Mutex::new(progress.add(ProgressBar::new((CUBOIDS/2).into()))));
-
-    let thread_a = thread::spawn(move || worker(writer_a, 0, 2, prgs_a));
-    let thread_b = thread::spawn(move || worker(writer_b, 1, 2, prgs_b));
+    let thread_a = thread::spawn(move || worker(writer_a, 0, 2));
+    let thread_b = thread::spawn(move || worker(writer_b, 1, 2));
 
     thread_a.join().unwrap();
     thread_b.join().unwrap();
