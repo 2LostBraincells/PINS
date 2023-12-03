@@ -1,4 +1,4 @@
-/// Everything related to outputing the ressults if to a file or to the std or 
+// Everything related to outputing the ressults if to a file or to the std or 
 
 use metal::Buffer;
 use std::mem;
@@ -12,10 +12,6 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
     let len = results.length() as usize / mem::size_of::<bool>();
     let slice = unsafe { slice::from_raw_parts(ptr, len) };
 
-    // pre allocate full string
-    let mut parsed = String::with_capacity(1_000_000);
-
-    let mut index = 0;
 
     let [
         start_year,
@@ -32,34 +28,62 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
             .try_into().unwrap()
     };
 
+
+    // pre allocate full string
+    let mut parsed = String::with_capacity(1_000_000);
+    let mut index = 0;
+
+
+
+    // create a 11 byte array of char codes
+    let mut base = format!("000000-{:04} ", checksum);
+    let pin = unsafe { base.as_bytes_mut() };
+    
+
+
     for year in 0..years {
         let actual_year = start_year + year;
+
+        // change the digits for the year
+        pin[0] = ((actual_year / 10) + 48) as u8;
+        pin[1] = ((actual_year % 10) + 48) as u8;
+
+
 
         for month in 0..months {
             let actual_month = start_month + month;
 
+            // change the digits for the month
+            pin[2] = ((actual_month / 10) + 48) as u8;
+            pin[3] = ((actual_month % 10) + 48) as u8;
+
+            
+
             for day in 0..days {
 
+                // continue if this index should be skipped
                 if !slice[index as usize] {
                     index += 1;
                     continue;
                 }
                 index += 1;
 
+                let actual_day = start_day + day;
+
+                // change the digits for the day
+                pin[4] = ((actual_day / 10) + 48) as u8;
+                pin[5] = ((actual_day % 10) + 48) as u8;
+
                 
-                parsed.push_str(
-                    format!(
-                        "{:02}{:02}{:02}-{:04} ",
-                        actual_year,
-                        actual_month,
-                        start_day + day,
-                        checksum 
-                    ).as_str()
-                );
+                let str = unsafe{ std::str::from_utf8_unchecked(pin) };
+                
+                parsed.push_str(str);
             }
         }
-        parsed.push_str("\n");
-    }
 
+
+        // split lines based on year
+        parsed.push('\n');
+    }
     parsed
 }

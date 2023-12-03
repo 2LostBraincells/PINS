@@ -1,12 +1,9 @@
 use metal::*;
 use std::time::{Instant, Duration};
-use std::io::BufReader;
-use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::thread::JoinHandle;
 use std::mem;
 
 mod gpu;
@@ -160,15 +157,6 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
             *reservation.lock().unwrap() = id + 1;
         }
     }
-
-    println!("{}: Done!", id);
-
-    println!("Time spent: ");
-    println!("  Setup: {}ms", setup_timer.as_millis());
-    println!("  Computing: {}ms", compute_timer.as_millis());
-    println!("  Parsing: {}ms", parse_timer.as_millis());
-    println!("  Waiting: {}ms", wait_timer.as_millis());
-    println!("  Writing: {}ms", write_timer.as_millis());
 }
 
 fn main() {
