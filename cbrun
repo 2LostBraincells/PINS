@@ -1,10 +1,14 @@
 echo "\n==== compiling shader ====\n"
-cd shaders
+cd src/shaders
 ./makelib.sh
 cd ..
 
 echo "\n==== building for release ====\n"
 cargo build --release
+
+echo "\n==== clearing output.txt ====\n"
+rm output.txt
+touch output.txt
 
 echo "\n==== running with time ====\n"
 time ../target/release/pinv
