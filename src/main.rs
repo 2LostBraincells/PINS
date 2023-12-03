@@ -66,9 +66,9 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     // Define thread count
     let grid_size = metal::MTLSize::new(
-        (YEARS - 1) as u64, //width
-        (MONTHS - 1) as u64, // height
-        (DAYS - 1) as u64); //depth
+        (YEARS) as u64, //width
+        (MONTHS) as u64, // height
+        (DAYS) as u64); //depth
 
 
     // setup buffers
