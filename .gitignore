@@ -2,9 +2,13 @@
 .DS_Store
 
 # Output file
+<<<<<<< HEAD
 output.txt
 
 
 # Compiled files
 /target
 *.metallib
+=======
+**/output.txt
+>>>>>>> a2ca772772807d70422b4fc6b37a79baf5aaa741
