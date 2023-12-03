@@ -46,17 +46,17 @@ kernel void check_pin(
     }
 
     if (month > 12) {
-      resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
+      resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = false;
       return;
     }
 
     if (month == 0) {
-      resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
+      resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = false;
       return;
     }
 
     if (day == 0 || (day > greatest_day && day < 61) || day > greatest_day + 60) {
-      resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
+      resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = false;
       return;
     }
 
@@ -95,7 +95,7 @@ kernel void check_pin(
         // sum += pin[i] + ((i & 0b1) ^ 0b1) * (pin[i] + ((pin[i] >= 5) * (-9)));
     }
     
-    resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = (sum % 10) == 0;
+    resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = (sum % 10) == 0;
 }
 
 [[kernel]]
