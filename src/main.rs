@@ -1,12 +1,12 @@
 use metal::*;
-use std::io::{BufReader, Read};
+use std::time::{Instant, Duration};
+use std::io::BufReader;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::mem;
-use std::slice;
 
 mod gpu;
 mod parser;
@@ -44,6 +44,15 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     //! thread::spawn(move || worker(writer, 1, 2));
     //! ```
 
+    // initalize timers
+    let mut setup_timer = Duration::new(0, 0);
+    let mut compute_timer = Duration::new(0, 0);
+    let mut parse_timer = Duration::new(0, 0);
+    let mut wait_timer = Duration::new(0, 0);
+    let mut write_timer = Duration::new(0, 0);
+
+    let now = Instant::now();
+
     let mut offsets: [u16; 7] = [
         START_YEAR,
         START_MONTH,
@@ -56,10 +65,8 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     let length = offsets.len() as u64;
     let size = length * core::mem::size_of::<u16>() as u64;
-    println!("{}: will validate {} pins in groups {} to {} with a step size of {}, each group containing {} potential pins", id, TOTAL * ((CUBOIDS / steps) as usize), id, CUBOIDS, steps, TOTAL);
 
     // Setup GPU
-    println!("{}: Setting up GPU...", id);
     let device = &gpu::get_device();
     let queue = device.new_command_queue();
 
@@ -72,7 +79,6 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
 
     // setup buffers
-    println!("{}: Creating buffers", id);
     let buffer_offsets = device.new_buffer_with_data(
         unsafe { mem::transmute(offsets.as_ptr()) }, // bytes
         size, // length
@@ -86,16 +92,25 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     );
 
 
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(false)
+        .open("output.txt").unwrap();
+
+
+    setup_timer += now.elapsed();
 
     println!("{}: Computing...", id);
     for i in (id..CUBOIDS).step_by(steps.into()) {
+        let now = Instant::now();
 
         // Update checksum
         offsets[3] = i;
+
         let a_ptr = buffer_offsets.contents() as *mut u16;
         unsafe { 
-            let ptr = (a_ptr).offset(3);
-
+            let ptr = a_ptr.offset(3);
             *ptr = i
         }
 
@@ -115,26 +130,24 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         buffer.commit();
         buffer.wait_until_completed();
 
+        compute_timer += now.elapsed();
+        let now = Instant::now();
+
         // results
-        let ptr = buffer_result.contents() as *const bool;
-        let len = buffer_result.length() as usize / mem::size_of::<bool>();
-        let slice = unsafe { slice::from_raw_parts(ptr, len) };
-
-        let parsed = parser::parse(&offsets, slice);
+        let parsed = parser::parse(&offsets, buffer_result.clone());
         let bytes = parsed.as_bytes();
+        parse_timer += now.elapsed();
 
+        // wait for self's turn to write to file
+        let now = Instant::now();
         while *reservation.lock().unwrap() != id {}
+        wait_timer += now.elapsed();
+
         *reservation.lock().unwrap() = id;
         
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .create(false)
-            .open("output.txt").unwrap();
-
+        let now = Instant::now();
         file.write_all(bytes).unwrap();
-
-
+        write_timer += now.elapsed();
 
         if id == steps - 1 {
             *reservation.lock().unwrap() = 0;
@@ -143,7 +156,14 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         }
     }
 
-    println!("{}: Done", id);
+    println!("{}: Done!", id);
+
+    println!("Time spent: ");
+    println!("  Setup: {}ms", setup_timer.as_millis());
+    println!("  Computing: {}ms", compute_timer.as_millis());
+    println!("  Parsing: {}ms", parse_timer.as_millis());
+    println!("  Waiting: {}ms", wait_timer.as_millis());
+    println!("  Writing: {}ms", write_timer.as_millis());
 }
 
 fn main() {
@@ -161,27 +181,4 @@ fn main() {
     let file = File::open("output.txt").unwrap();
     let mut reader = BufReader::new(file);
     let mut digits_array = [1; 10]; // Initialize an array of 10 elements with default value 0
-
-    for line in reader.lines() {
-        match line {
-            Ok(contents) => {
-                for pin in contents.split(" ") {
-                    if (pin.len() != 11) {continue;}
-                    println!("{}", pin);
-
-                    for (index, c) in pin.chars().filter(|c| c.is_digit(10)).enumerate() {
-                        if index >= 10 {
-                            break; // Break if we've collected 10 digits
-                        }
-                        digits_array[index] = c.to_digit(10).unwrap() as i32;
-                    }
-
-                    testing::test_pin(digits_array, true);
-                }
-            },
-            Err(_) => println!("nth"),
-        }
-    }
-
-
 }
