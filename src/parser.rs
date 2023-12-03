@@ -26,6 +26,18 @@ pub fn parse(offsets: &[u16; 7], results: &[bool]) -> String {
         for month in offsets[1]..offsets[5]{
             for day in offsets[2]..offsets[6]{
                 let index = year + offsets[4] * month + offsets[4] * offsets[5] * day;
+                if 9276 == offsets[3] {
+                    if !results[index as usize] {
+                        print!(
+                            "{:02}{:02}{:02}-{:04} ",
+                            year + offsets[0],
+                            month + offsets[1],
+                            day + offsets[2],
+                            offsets[3]
+                        );
+                        continue;
+                    }
+                }
                 if !results[index as usize] {
                     continue;
                 }

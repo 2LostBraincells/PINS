@@ -31,13 +31,13 @@ kernel void check_pin(
     int greatest_day = 0;
 
     switch (month) {
-      case 1:
+      case 2:
         greatest_day = 28 + (year % 4 == 0);
         break;
-      case 3:
-      case 5:
-      case 8:
-      case 10:
+      case 4:
+      case 6:
+      case 9:
+      case 11:
         greatest_day = 30;
         break;
       default:
@@ -45,7 +45,7 @@ kernel void check_pin(
         break;
     }
 
-    if (month == 1 || month > 12) {
+    if (month == 0 || month > 12) {
       resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
       return;
     }
@@ -74,7 +74,20 @@ kernel void check_pin(
     int sum = 0;
     
     for (int i = 0; i < 10; i++) {
-        sum += pin[i] + ((i & 0b1) ^ 0b1) * (pin[i] + ((pin[i] >= 5) * (-9)));
+        if (i % 2 == 0) {
+          if (pin[i] * 2 > 9) {
+            sum += pin[i] * 2 % 10 + 1;
+          } 
+          else
+          {
+            sum += pin[i] * 2;
+          }
+        }
+        else 
+        {
+          sum += pin[i];
+        }
+        // sum += pin[i] + ((i & 0b1) ^ 0b1) * (pin[i] + ((pin[i] >= 5) * (-9)));
     }
     
     resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = (sum % 10) == 0;
