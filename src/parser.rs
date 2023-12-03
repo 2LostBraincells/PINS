@@ -23,9 +23,9 @@ pub fn parse(offsets: &[u16; 7], results: &[bool]) -> String {
     let mut parsed = String::new();
     let mut index = 0;
 
-    for year in offsets[0]..offsets[4]{
+    for day in offsets[2]..offsets[6]{
         for month in offsets[1]..offsets[5]{
-            for day in offsets[2]..offsets[6]{
+            for year in offsets[0]..offsets[4]{
                 if !results[index as usize] {
                     index += 1;
                     continue;

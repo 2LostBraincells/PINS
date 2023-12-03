@@ -1,4 +1,6 @@
 use metal::*;
+use std::io::{BufReader, Read};
+use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -155,4 +157,31 @@ fn main() {
 
     thread_a.join().unwrap();
     thread_b.join().unwrap();
+
+    let file = File::open("output.txt").unwrap();
+    let mut reader = BufReader::new(file);
+    let mut digits_array = [1; 10]; // Initialize an array of 10 elements with default value 0
+
+    for line in reader.lines() {
+        match line {
+            Ok(contents) => {
+                for pin in contents.split(" ") {
+                    if (pin.len() != 11) {continue;}
+                    println!("{}", pin);
+
+                    for (index, c) in pin.chars().filter(|c| c.is_digit(10)).enumerate() {
+                        if index >= 10 {
+                            break; // Break if we've collected 10 digits
+                        }
+                        digits_array[index] = c.to_digit(10).unwrap() as i32;
+                    }
+
+                    testing::test_pin(digits_array, true);
+                }
+            },
+            Err(_) => println!("nth"),
+        }
+    }
+
+
 }
