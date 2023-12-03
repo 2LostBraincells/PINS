@@ -6,6 +6,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::thread::JoinHandle;
 use std::mem;
 
 mod gpu;
@@ -13,6 +14,7 @@ mod parser;
 mod testing;
 
 const CUBOIDS: u16 = 10_000;
+const THREADS: usize = 8;
 
 const START_YEAR: u16 = 0;
 const START_MONTH: u16 = 0;
@@ -51,7 +53,8 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     let mut wait_timer = Duration::new(0, 0);
     let mut write_timer = Duration::new(0, 0);
 
-    let now = Instant::now();
+
+    while *reservation.lock().unwrap() != id {}
 
     let mut offsets: [u16; 7] = [
         START_YEAR,
@@ -99,7 +102,6 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         .open("output.txt").unwrap();
 
 
-    setup_timer += now.elapsed();
 
     println!("{}: Computing...", id);
     for i in (id..CUBOIDS).step_by(steps.into()) {
@@ -127,10 +129,13 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         // Compute
         encoder.dispatch_threads(grid_size, gpu::max_group());
         encoder.end_encoding();
+        setup_timer += now.elapsed();
+
+        let now = Instant::now();
         buffer.commit();
         buffer.wait_until_completed();
-
         compute_timer += now.elapsed();
+
         let now = Instant::now();
 
         // results
@@ -169,16 +174,18 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 fn main() {
 
     let writer = Arc::new(Mutex::new(0));
-    let writer_a = Arc::clone(&writer);
-    let writer_b = Arc::clone(&writer);
+    let mut workers = vec![];
 
-    let thread_a = thread::spawn(move || worker(writer_a, 0, 2));
-    let thread_b = thread::spawn(move || worker(writer_b, 1, 2));
+    for i in 0..THREADS {
+        let writer = Arc::clone(&writer);
+        let handle = thread::spawn(move || worker(writer, i.try_into().unwrap(), THREADS.try_into().unwrap()));
+        workers.push(handle);
+    }
 
-    thread_a.join().unwrap();
-    thread_b.join().unwrap();
 
-    let file = File::open("output.txt").unwrap();
-    let mut reader = BufReader::new(file);
-    let mut digits_array = [1; 10]; // Initialize an array of 10 elements with default value 0
+    for handle in workers {
+        handle.join().unwrap();
+    }
+
+
 }
