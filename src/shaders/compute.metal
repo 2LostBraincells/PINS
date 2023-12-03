@@ -45,7 +45,12 @@ kernel void check_pin(
         break;
     }
 
-    if (month == 0 || month > 12) {
+    if (month > 12) {
+      resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
+      return;
+    }
+
+    if (month == 0) {
       resultArray[index.x + constants[4] * index.y + constants[4] * constants[5] * index.z] = false;
       return;
     }

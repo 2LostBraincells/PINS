@@ -8,6 +8,7 @@ use std::slice;
 
 mod gpu;
 mod parser;
+mod testing;
 
 const CUBOIDS: u16 = 10_000;
 
@@ -15,36 +16,11 @@ const START_YEAR: u16 = 0;
 const START_MONTH: u16 = 0;
 const START_DAY: u16 = 0;
 
-const YEARS: u16 = 100;
-const MONTHS: u16 = 100;
-const DAYS: u16 = 100;
+const YEARS: u16 = 99;
+const MONTHS: u16 = 99;
+const DAYS: u16 = 99;
 
 const TOTAL: usize = YEARS as usize * MONTHS as usize * DAYS as usize;
-
-
-#[allow(dead_code)]
-fn luhns(pin: [i32;10]) -> bool {
-    //! Check a single PIN using the CPU
-    //!
-    //! This function is meant to be used to troubleshoot and test all other functions and methods
-    //! Its essentialy the single source of truth that all other functions should follow
-    let mut sum: i32 = 0;
-
-    for (i, num) in pin.iter().enumerate() {
-        sum += num + ((i as i32) & 1 ^ 1) * (num - ((num >= &5) as i32) * 9);
-    }
-
-    return sum % 10 == 0;
-}
-
-#[cfg(test)]
-#[test]
-fn luhns_check() {
-    assert_eq!(luhns([0,6,1,0,0,9,2,4,5,4]), true);
-    assert_eq!(luhns([0,6,0,3,1,7,9,2,7,6]), true);
-
-    assert_eq!(luhns([1,6,0,3,1,7,9,2,7,6]), false);
-}
 
 
 fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
@@ -78,7 +54,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     let length = offsets.len() as u64;
     let size = length * core::mem::size_of::<u16>() as u64;
-    println!("{}: will validate {} pins in {} groups, each group containing {} potential pins", id, TOTAL * ((CUBOIDS / steps) as usize), CUBOIDS / steps, TOTAL);
+    println!("{}: will validate {} pins in groups {} to {} with a step size of {}, each group containing {} potential pins", id, TOTAL * ((CUBOIDS / steps) as usize), id, CUBOIDS, steps, TOTAL);
 
     // Setup GPU
     println!("{}: Setting up GPU...", id);
@@ -108,12 +84,9 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     );
 
 
-    //progress.lock().unwrap().set_style(ProgressStyle::with_template("[{elapsed_precise}] {bar:40.white/black} {pos:>7}/{len:7} {msg}").unwrap());
 
     println!("{}: Computing...", id);
     for i in (id..CUBOIDS).step_by(steps.into()) {
-        // progress.lock().unwrap().inc(1);
-        // progress.lock().unwrap().set_message("Computing");
 
         // Update checksum
         offsets[3] = i;
