@@ -44,11 +44,11 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     //! ```
 
     // initalize timers
-    let mut setup_timer = Duration::new(0, 0);
-    let mut compute_timer = Duration::new(0, 0);
-    let mut parse_timer = Duration::new(0, 0);
-    let mut wait_timer = Duration::new(0, 0);
-    let mut write_timer = Duration::new(0, 0);
+    // let mut setup_timer = Duration::new(0, 0);
+    // let mut compute_timer = Duration::new(0, 0);
+    // let mut parse_timer = Duration::new(0, 0);
+    // let mut wait_timer = Duration::new(0, 0);
+    // let mut write_timer = Duration::new(0, 0);
 
 
     while *reservation.lock().unwrap() != id {}
@@ -102,7 +102,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     println!("{}: Computing...", id);
     for i in (id..CUBOIDS).step_by(steps.into()) {
-        let now = Instant::now();
+        // let now = Instant::now();
 
         // Update checksum
         offsets[3] = i;
@@ -126,30 +126,30 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         // Compute
         encoder.dispatch_threads(grid_size, gpu::max_group());
         encoder.end_encoding();
-        setup_timer += now.elapsed();
+        // setup_timer += now.elapsed();
 
-        let now = Instant::now();
+        // let now = Instant::now();
         buffer.commit();
         buffer.wait_until_completed();
-        compute_timer += now.elapsed();
+        // compute_timer += now.elapsed();
 
-        let now = Instant::now();
+        // let now = Instant::now();
 
         // results
         let parsed = parser::parse(&offsets, buffer_result.clone());
         let bytes = parsed.as_bytes();
-        parse_timer += now.elapsed();
+        // parse_timer += now.elapsed();
 
         // wait for self's turn to write to file
-        let now = Instant::now();
+        // let now = Instant::now();
         while *reservation.lock().unwrap() != id {}
-        wait_timer += now.elapsed();
+        // wait_timer += now.elapsed();
 
         *reservation.lock().unwrap() = id;
         
         let now = Instant::now();
         file.write_all(bytes).unwrap();
-        write_timer += now.elapsed();
+        // write_timer += now.elapsed();
 
         if id == steps - 1 {
             *reservation.lock().unwrap() = 0;
@@ -173,4 +173,6 @@ fn main() {
     for handle in workers {
         handle.join().unwrap();
     }
+
+    println!("Done!");
 }
