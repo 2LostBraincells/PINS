@@ -21,26 +21,16 @@ pub fn print(offsets: &[u16; 7], results: &[bool]) {
 
 pub fn parse(offsets: &[u16; 7], results: &[bool]) -> String {
     let mut parsed = String::new();
+    let mut index = 0;
 
     for year in offsets[0]..offsets[4]{
         for month in offsets[1]..offsets[5]{
             for day in offsets[2]..offsets[6]{
-                let index = year + offsets[4] * month + offsets[4] * offsets[5] * day;
-                if 9276 == offsets[3] {
-                    if !results[index as usize] {
-                        print!(
-                            "{:02}{:02}{:02}-{:04} ",
-                            year + offsets[0],
-                            month + offsets[1],
-                            day + offsets[2],
-                            offsets[3]
-                        );
-                        continue;
-                    }
-                }
                 if !results[index as usize] {
+                    index += 1;
                     continue;
                 }
+                index += 1;
 
                 parsed.push_str(
                     format!(

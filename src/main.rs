@@ -16,9 +16,9 @@ const START_YEAR: u16 = 0;
 const START_MONTH: u16 = 0;
 const START_DAY: u16 = 0;
 
-const YEARS: u16 = 99;
-const MONTHS: u16 = 99;
-const DAYS: u16 = 99;
+const YEARS: u16 = 100;
+const MONTHS: u16 = 100;
+const DAYS: u16 = 100;
 
 const TOTAL: usize = YEARS as usize * MONTHS as usize * DAYS as usize;
 
@@ -64,9 +64,9 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     // Define thread count
     let grid_size = metal::MTLSize::new(
-        YEARS as u64, //width
-        MONTHS as u64, // height
-        DAYS as u64); //depth
+        (YEARS - 1) as u64, //width
+        (MONTHS - 1) as u64, // height
+        (DAYS - 1) as u64); //depth
 
 
     // setup buffers
@@ -137,7 +137,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         if id == steps - 1 {
             *reservation.lock().unwrap() = 0;
         } else {
-            *reservation.lock().unwrap() = id+1;
+            *reservation.lock().unwrap() = id + 1;
         }
     }
 
