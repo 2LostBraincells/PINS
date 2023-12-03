@@ -30,6 +30,12 @@ kernel void check_pin(
   
     int greatest_day = 0;
 
+
+    if (month > 12 || month == 0) {
+      resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = false;
+      return;
+    }
+
     switch (month) {
       case 2:
         greatest_day = 28 + (year % 4 == 0);
@@ -43,16 +49,6 @@ kernel void check_pin(
       default:
         greatest_day = 31;
         break;
-    }
-
-    if (month > 12) {
-      resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = false;
-      return;
-    }
-
-    if (month == 0) {
-      resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = false;
-      return;
     }
 
     if (day == 0 || (day > greatest_day && day < 61) || day > greatest_day + 60) {
