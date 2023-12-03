@@ -21,7 +21,8 @@ pub fn print(offsets: &[u16; 7], results: &[bool]) {
     }
 }
 
-pub fn write(file: &mut File, offsets: &[u16; 7], results: &[bool]) {
+pub fn write(offsets: &[u16; 7], results: &[bool]) {
+    let mut file = File::create("output.txt").unwrap();
     let mut parsed = String::new();
 
     for year in 0..offsets[4]{
