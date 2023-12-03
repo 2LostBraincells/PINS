@@ -94,7 +94,20 @@ kernel void check_pin(
         }
         // sum += pin[i] + ((i & 0b1) ^ 0b1) * (pin[i] + ((pin[i] >= 5) * (-9)));
     }
-    
+
+    /*
+    sum += (pin[0] > 5) ? pin[0] * 2 % 10 + 1 : pin[0] * 2;
+    sum += pin[1];
+    sum += (pin[2] > 5) ? pin[2] * 2 % 10 + 1 : pin[2] * 2;
+    sum += pin[3];
+    sum += (pin[4] > 5) ? pin[4] * 2 % 10 + 1 : pin[4] * 2;
+    sum += pin[5];
+    sum += (pin[6] > 5) ? pin[6] * 2 % 10 + 1 : pin[6] * 2;
+    sum += pin[7];
+    sum += (pin[8] > 5) ? pin[8] * 2 % 10 + 1 : pin[8] * 2;
+    sum += pin[9];
+    */
+
     resultArray[index.z + constants[4] * index.y + constants[4] * constants[5] * index.x] = (sum % 10) == 0;
 }
 

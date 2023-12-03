@@ -11,7 +11,7 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
     let len = results.length() as usize / mem::size_of::<bool>();
     let slice = unsafe { slice::from_raw_parts(ptr, len) };
 
-    let mut parsed = String::new();
+    let mut parsed = String::with_capacity(1_000_000);
 
     let mut index = 0;
 

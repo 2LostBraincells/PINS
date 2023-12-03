@@ -14,7 +14,7 @@ mod parser;
 mod testing;
 
 const CUBOIDS: u16 = 10_000;
-const THREADS: usize = 8;
+const WORKERS: usize = 8;
 
 const START_YEAR: u16 = 0;
 const START_MONTH: u16 = 0;
@@ -76,9 +76,9 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     // Define thread count
     let grid_size = metal::MTLSize::new(
-        (YEARS) as u64, //width
-        (MONTHS) as u64, // height
-        (DAYS) as u64); //depth
+        YEARS as u64, //width
+        MONTHS as u64, // height
+        DAYS as u64); //depth
 
 
     // setup buffers
@@ -176,9 +176,9 @@ fn main() {
     let writer = Arc::new(Mutex::new(0));
     let mut workers = vec![];
 
-    for i in 0..THREADS {
+    for i in 0..WORKERS {
         let writer = Arc::clone(&writer);
-        let handle = thread::spawn(move || worker(writer, i.try_into().unwrap(), THREADS.try_into().unwrap()));
+        let handle = thread::spawn(move || worker(writer, i.try_into().unwrap(), WORKERS.try_into().unwrap()));
         workers.push(handle);
     }
 
