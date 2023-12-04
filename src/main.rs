@@ -1,5 +1,5 @@
 use metal::*;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -136,8 +136,11 @@ fn worker(file: Arc<Mutex<std::fs::File>>, reservation: Arc<Mutex<u16>>, id: u16
         // Compute
         encoder.dispatch_threads(grid_size, group);
         encoder.end_encoding();
+
+        // let now = Instant::now();
         buffer.commit();
         buffer.wait_until_completed();
+        // compute_timer += now.elapsed();
 
 
         // results
@@ -152,6 +155,8 @@ fn worker(file: Arc<Mutex<std::fs::File>>, reservation: Arc<Mutex<u16>>, id: u16
 
         // increment index
     }
+
+    // println!("{}: Done! {}ms was spent computing", id, compute_timer.as_millis());
 }
 
 fn main() {
