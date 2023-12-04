@@ -57,7 +57,7 @@ pub fn test_pin(pin: [i32;10], expected: bool) {
     //! Test function with better diagnostics than a normal assert_eq
 
     let actual = check(pin);
-    dbg!(actual);
+    // dbg!(actual);
 
     // if result is correct, do nothing and return
     if actual == expected { return; }

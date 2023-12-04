@@ -1,11 +1,11 @@
 use metal::*;
 #[allow(unused_imports)]
+use std::io::BufReader;
 use std::time::{Instant, Duration};
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
-use std::path::Path;
 use std::thread;
 use std::mem;
 
@@ -37,17 +37,20 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
     //! Validates all pins with checksum 0 to 10_000 with a step size of [steps] and a inital
     //! offset of [id]
     //!
-    //! * `reservation` - A shared variable where a thread that is currently writing puts its id
+    //! * `file` - A shared handle for writing to the file.
     //! * `id` - Unique id. Used for getting a offset for the checksum
     //! * `steps` - How many steps to take between checksum numbers.
     //!
     //! # Example
     //! To have two threads sharing the workload, one could set them up like this
     //! ```rust
-    //! let writer = Arc::new(Mutex::new(0));
+    //! let file = Arc::new(Mutex::new(File::create("output.txt")));
+    //! let file_a = Arc::clone(&file);
+    //! let file_b = Arc::clone(&file);
     //!
-    //! thread::spawn(move || worker(writer, 0, 2));
-    //! thread::spawn(move || worker(writer, 1, 2));
+    //!
+    //! thread::spawn(move || worker(file_a, 0, 2));
+    //! thread::spawn(move || worker(file_b, 1, 2));
     //! ```
 
     // initalize timers
@@ -89,9 +92,9 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
 
     // setup buffers
     let buffer_offsets = device.new_buffer_with_data(
-        unsafe { mem::transmute(offsets_buffer.as_ptr()) }, // bytes
-        size, // length
-        MTLResourceOptions::StorageModeShared, // Storage mode
+        unsafe { mem::transmute(offsets_buffer.as_ptr()) },
+        size,
+        MTLResourceOptions::StorageModeShared,
     );
 
 
@@ -103,66 +106,63 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
 
     
     let buffer_result = device.new_buffer(
-        (TOTAL * core::mem::size_of::<bool>()) as u64, // length
-        MTLResourceOptions::StorageModeShared, // Storage mode
+        (TOTAL * core::mem::size_of::<bool>()) as u64,
+        MTLResourceOptions::StorageModeShared,
     );
 
 
 
-
+    // Pointer to the contents of the offsets buffer
+    // Used to directly change the checksum for every compute cycle
     let a_ptr = buffer_offsets.contents() as *mut u16;
+
 
     println!("{}: Computing {} blocks", id, ((CUBOIDS - id - 1) / steps)+1);
     for i in (id..CUBOIDS).step_by(steps.into()) {
 
-        // Update checksum
+        // Update checksum offset value
         offsets_buffer[3] = i;
-
         unsafe { 
             let ptr = a_ptr.offset(3);
             *ptr = i;
         }
 
+        // cycle setup
         let buffer = queue.new_command_buffer();
         let encoder = buffer.new_compute_command_encoder();
-
-        // setup shader function
         gpu::use_function(&device, "check_pin", encoder);
-
 
         // init buffers
         encoder.set_buffer(0, Some(&buffer_offsets), 0);
         encoder.set_buffer(1, Some(&buffer_result), 0);
         encoder.set_buffer(2, Some(&buffer_multipliers), 0);
 
-
-        // Compute
+        // Finalize the dispatch group
         encoder.dispatch_threads(grid_size, group);
         encoder.end_encoding();
 
+
+        // Compute
         let now = Instant::now();
         buffer.commit();
         buffer.wait_until_completed();
         compute_timer += now.elapsed();
 
 
-        // results
+        // parse the results
         let now = Instant::now();
         let parsed = parser::parse(&offsets_buffer, buffer_result.clone());
         parse_timer += now.elapsed();
         let bytes = parsed.as_bytes();
 
 
-        // wait for self's turn to write to file
-        
-        // write pre-computed contents to file
+        // write to file
         let now = Instant::now();
         file.lock().unwrap().write_all(bytes).unwrap();
         write_timer += now.elapsed();
-
-        // increment index
     }
 
+    // Write self time diagnostics to stdout
     println!(
         "{}: Done! {:03}ms {:03}ms {:03}ms ",
         id,
@@ -176,25 +176,20 @@ fn main() {
 
     let now = Instant::now();
     
-    // check if the output file exists
-    let exists = Path::new(OUTPUT).exists();
-    if !exists {
-        println!("Not output file, creating {}", OUTPUT);
-    } else {
-        println!("Emptying {}", OUTPUT)
-    }
 
-    let file = File::create(OUTPUT).expect("Unable to open file");
-    file.set_len(0).expect("Unable to empty file");
-
-
+    // list of thread handles
     let mut workers = vec![];
 
+
+    // create and empty file
+    println!("Emptying {}", OUTPUT);
     let file = Arc::new(Mutex::new(OpenOptions::new()
         .write(true)
         .append(true)
-        .create(false)
+        .create(true)
         .open("output.txt").unwrap()));
+    file.lock().unwrap().set_len(0).expect("Unable to empty file");
+
 
     // spawn threads
     for i in 0..WORKERS {
@@ -205,11 +200,44 @@ fn main() {
 
     println!("\nAll threads spawned\n");
 
+
     // wait for threads to finish
     for handle in workers {
         handle.join().unwrap();
     }
 
+
     println!("I: Done! compu parse write");
-    println!("\nFinal: {}ms", now.elapsed().as_millis())
+    println!("\nFinal: {}ms", now.elapsed().as_millis());
+
+
+    // scan file for invalid pin's
+    let file = File::open("output.txt").unwrap();
+    let reader = BufReader::new(file);
+
+    let mut digits_array = [1; 10]; // Initialize an array of 10 elements with default value 0
+
+    // get each line separatly
+    for line in reader.lines() {
+        match line {
+            Ok(contents) => {
+                for pin in contents.split(" ") {
+                    // ignore invalid lengths
+                    if pin.len() != 11 {continue;}
+
+                    // fill digits_array with i32's of the given number
+                    for (index, c) in pin.chars().filter(|c| c.is_digit(10)).enumerate() {
+                        if index >= 10 {
+                            break; // Break if we've collected 10 digits
+                        }
+                        digits_array[index] = c.to_digit(10).unwrap() as i32;
+                    }
+
+                    // test the pin
+                    testing::test_pin(digits_array, true);
+                }
+            },
+            Err(_) => println!("nth"),
+        }
+    }
 }
