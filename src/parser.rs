@@ -2,16 +2,9 @@
 
 use metal::Buffer;
 use std::mem;
-use core::slice;
 
-pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
+pub fn parse(offsets: &[u16; 7], results: &[bool]) -> String {
     //! Parses the results from a results buffer into a human readable string
-
-    // extract to array
-    let ptr = results.contents() as *const bool;
-    let len = results.length() as usize / mem::size_of::<bool>();
-    let slice = unsafe { slice::from_raw_parts(ptr, len) };
-
 
     let [
         start_year,
@@ -56,7 +49,7 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
             for day in 0..days {
 
                 // continue if this index should be skipped
-                if !slice[index] {
+                if !results[index] {
                     index += 1;
                     continue;
                 }

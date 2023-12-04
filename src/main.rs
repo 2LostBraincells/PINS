@@ -8,6 +8,7 @@ use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::mem;
+use core::slice;
 
 mod gpu;
 mod parser;
@@ -54,7 +55,7 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
     //! ```
 
     // initalize timers
-    // let mut setup_timer = Duration::new(0, 0);
+    let mut setup_timer = Duration::new(0, 0);
     let mut compute_timer = Duration::new(0, 0);
     let mut parse_timer = Duration::new(0, 0);
     // let mut wait_timer = Duration::new(0, 0);
@@ -67,7 +68,7 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
         START_YEAR,
         START_MONTH,
         START_DAY,
-        0,
+        id,
         YEARS,
         MONTHS,
         DAYS,
@@ -110,7 +111,11 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
         MTLResourceOptions::StorageModeShared,
     );
 
+    let ptr = buffer_result.contents() as *const bool;
+    let len = buffer_result.length() as usize ; 
+    let prev = unsafe { slice::from_raw_parts(ptr, len) };
 
+    let mut prev_results = vec![false; buffer_result.length().try_into().unwrap()];
 
     // Pointer to the contents of the offsets buffer
     // Used to directly change the checksum for every compute cycle
@@ -120,6 +125,7 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
     println!("{}: Computing {} blocks", id, ((CUBOIDS - id - 1) / steps)+1);
     for i in (id..CUBOIDS).step_by(steps.into()) {
 
+        let now = Instant::now();
 
         // cycle setup
         let buffer = queue.new_command_buffer();
@@ -135,39 +141,54 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
         encoder.dispatch_threads(grid_size, group);
         encoder.end_encoding();
 
+        // clone prevous results
+        prev_results.clone_from_slice(&prev);
 
-        // Compute
-        let now = Instant::now();
-        buffer.commit();
 
-        // Update checksum offset value
-        offsets_buffer[3] = i;
+        // chagne the checksum for the gpu
         unsafe { 
             let ptr = a_ptr.offset(3);
             *ptr = i;
         }
 
+        setup_timer += now.elapsed();
+
+        // Start compute cycle for the gpu
+        let now2 = Instant::now();
+        buffer.commit();
+
+        if i != id {
+            let now = Instant::now();
+            // parse the results
+            let parsed = parser::parse(&offsets_buffer, &prev_results);
+            let bytes = parsed.as_bytes();
+            parse_timer += now.elapsed();
+
+            // write to file
+            file.lock().unwrap().write_all(bytes).unwrap();
+        }
+
+        offsets_buffer[3] = i;
+
         buffer.wait_until_completed();
-        compute_timer += now.elapsed();
-
-
-        // parse the results
-        let now = Instant::now();
-        let parsed = parser::parse(&offsets_buffer, buffer_result.clone());
-        parse_timer += now.elapsed();
-        let bytes = parsed.as_bytes();
-
-
-        // write to file
-        let now = Instant::now();
-        file.lock().unwrap().write_all(bytes).unwrap();
-        write_timer += now.elapsed();
+        compute_timer += now2.elapsed();
     }
+    prev_results.clone_from_slice(&prev);
+
+    let now = Instant::now();
+
+    let parsed = parser::parse(&offsets_buffer, &prev_results);
+    let bytes = parsed.as_bytes();
+    parse_timer += now.elapsed();
+
+    // write to file
+    file.lock().unwrap().write_all(bytes).unwrap();
 
     // Write self time diagnostics to stdout
     println!(
-        "{}: Done! {:03}ms {:03}ms {:03}ms ",
+        "{}: Done! {:03}ms {:03}ms {:03}ms {:03}ms",
         id,
+        setup_timer.as_millis(),
         compute_timer.as_millis(),
         parse_timer.as_millis(),
         write_timer.as_millis(),
@@ -176,7 +197,6 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
 
 fn main() {
 
-    let now = Instant::now();
     
 
     // list of thread handles
@@ -192,6 +212,7 @@ fn main() {
         .open("output.txt").unwrap()));
     file.lock().unwrap().set_len(0).expect("Unable to empty file");
 
+    let now = Instant::now();
 
     // spawn threads
     for i in 0..WORKERS {
@@ -209,7 +230,7 @@ fn main() {
     }
 
 
-    println!("I: Done! compu parse write");
+    println!("I: Done! setup compu parse write ");
     println!("\nFinal: {}ms", now.elapsed().as_millis());
 
 
