@@ -26,7 +26,7 @@ const TOTAL: usize = YEARS as usize * MONTHS as usize * DAYS as usize;
 const MULTIPLIERS: [u16;10] = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
 
 
-fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
+fn worker(file: Arc<Mutex<std::fs::File>>, reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     //! A compute worker
     //!
     //! Validates all pins with checksum 0 to 10_000 with a step size of [steps] and a inital
@@ -53,7 +53,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     // let mut write_timer = Duration::new(0, 0);
 
 
-    while *reservation.lock().unwrap() != id {}
+    // while *reservation.lock().unwrap() != id {}
 
     let mut offsets_buffer: [u16; 7] = [
         START_YEAR,
@@ -103,18 +103,15 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     );
 
 
-    let mut file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(false)
-        .open("output.txt").unwrap();
 
 
     let a_ptr = buffer_offsets.contents() as *mut u16;
 
+    // *reservation.lock().unwrap() = (id != (steps - 1)) as u16 * (id + 1);
     println!("{}: Computing {} blocks", id, ((CUBOIDS - id - 1) / steps)+1);
     for i in (id..CUBOIDS).step_by(steps.into()) {
 
+        // while *reservation.lock().unwrap() != id {}
         // Update checksum
         offsets_buffer[3] = i;
 
@@ -149,13 +146,11 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
 
         // wait for self's turn to write to file
-        while *reservation.lock().unwrap() != id {}
         
         // write pre-computed contents to file
-        file.write_all(bytes).unwrap();
+        file.lock().unwrap().write_all(bytes).unwrap();
 
         // increment index
-        *reservation.lock().unwrap() = (id != (steps - 1)) as u16 * (id + 1)
     }
 }
 
@@ -166,10 +161,17 @@ fn main() {
     let writer = Arc::new(Mutex::new(0));
     let mut workers = vec![];
 
+    let file = Arc::new(Mutex::new(OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(false)
+        .open("output.txt").unwrap()));
+
     // spawn threads
     for i in 0..WORKERS {
         let writer = Arc::clone(&writer);
-        let handle = thread::spawn(move || worker(writer, i.try_into().unwrap(), WORKERS.try_into().unwrap()));
+        let file = Arc::clone(&file);
+        let handle = thread::spawn(move || worker(file, writer, i.try_into().unwrap(), WORKERS.try_into().unwrap()));
         workers.push(handle);
     }
 
