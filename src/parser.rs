@@ -41,24 +41,19 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
     
 
 
-    let mut actual_year = start_year;
-    for year in 0..years {
+    for year in start_year..start_year + years {
 
         // change the digits for the year
-        pin[0] = ((actual_year / 10) + 48) as u8;
-        pin[1] = ((actual_year % 10) + 48) as u8;
-
-        actual_year += 1;
+        pin[0] = ((year / 10) + 48) as u8;
+        pin[1] = ((year % 10) + 48) as u8;
 
 
-        let mut actual_month = start_month;
-        for month in 0..months {
+
+        for month in start_month..start_month + months {
 
             // change the digits for the month
-            pin[2] = ((actual_month / 10) + 48) as u8;
-            pin[3] = ((actual_month % 10) + 48) as u8;
-
-            actual_month += 1;
+            pin[2] = ((month / 10) + 48) as u8;
+            pin[3] = ((month % 10) + 48) as u8;
 
             
 
