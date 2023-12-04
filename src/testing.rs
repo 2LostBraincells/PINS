@@ -1,4 +1,5 @@
 
+
 #[allow(dead_code)]
 pub fn check_luhns(pin: [i32;10]) -> bool {
     //! Check a single PIN using luhns algorithm on the CPU
@@ -13,6 +14,7 @@ pub fn check_luhns(pin: [i32;10]) -> bool {
     return sum % 10 == 0;
 }
 
+#[allow(dead_code)]
 pub fn check_date(pin: [i32;10]) -> bool {
     //! Check a single PIN's date validity
     //!
@@ -38,6 +40,7 @@ pub fn check_date(pin: [i32;10]) -> bool {
     return true;
 }
 
+#[allow(dead_code)]
 pub fn check(pin: [i32;10]) -> bool {
     //! This function is meant to be used to troubleshoot and test all other functions and methods
     //! Its essentialy the single source of truth that all other functions should follow
@@ -49,6 +52,7 @@ pub fn check(pin: [i32;10]) -> bool {
     return true;
 }
 
+#[allow(dead_code)]
 pub fn test_pin(pin: [i32;10], expected: bool) {
     //! Test function with better diagnostics than a normal assert_eq
 

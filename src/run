@@ -1,4 +1,6 @@
 rm output.txt
 touch output.txt
 
+clear
+
 ../target/release/pinv

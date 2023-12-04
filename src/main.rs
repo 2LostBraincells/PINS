@@ -1,4 +1,5 @@
 use metal::*;
+#[allow(unused_imports)]
 use std::time::{Instant, Duration};
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -26,7 +27,7 @@ const TOTAL: usize = YEARS as usize * MONTHS as usize * DAYS as usize;
 const MULTIPLIERS: [u16;10] = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
 
 
-fn worker(file: Arc<Mutex<std::fs::File>>, reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
+fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
     //! A compute worker
     //!
     //! Validates all pins with checksum 0 to 10_000 with a step size of [steps] and a inital
@@ -163,7 +164,6 @@ fn main() {
 
     let now = Instant::now();
 
-    let writer = Arc::new(Mutex::new(0));
     let mut workers = vec![];
 
     let file = Arc::new(Mutex::new(OpenOptions::new()
@@ -174,9 +174,8 @@ fn main() {
 
     // spawn threads
     for i in 0..WORKERS {
-        let writer = Arc::clone(&writer);
         let file = Arc::clone(&file);
-        let handle = thread::spawn(move || worker(file, writer, i.try_into().unwrap(), WORKERS.try_into().unwrap()));
+        let handle = thread::spawn(move || worker(file, i.try_into().unwrap(), WORKERS.try_into().unwrap()));
         workers.push(handle);
     }
 

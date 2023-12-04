@@ -31,7 +31,7 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
 
     // pre allocate full string
     let mut parsed = String::with_capacity(1_000_000);
-    let mut index = 0;
+    let mut index: usize = 0;
 
 
 
@@ -41,28 +41,31 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
     
 
 
+    let mut actual_year = start_year;
     for year in 0..years {
-        let actual_year = start_year + year;
 
         // change the digits for the year
         pin[0] = ((actual_year / 10) + 48) as u8;
         pin[1] = ((actual_year % 10) + 48) as u8;
 
+        actual_year += 1;
 
 
+        let mut actual_month = start_month;
         for month in 0..months {
-            let actual_month = start_month + month;
 
             // change the digits for the month
             pin[2] = ((actual_month / 10) + 48) as u8;
             pin[3] = ((actual_month % 10) + 48) as u8;
+
+            actual_month += 1;
 
             
 
             for day in 0..days {
 
                 // continue if this index should be skipped
-                if !slice[index as usize] {
+                if !slice[index] {
                     index += 1;
                     continue;
                 }
