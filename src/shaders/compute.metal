@@ -8,6 +8,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
+
 kernel void check_individual (
   constant uint *nums     [[ buffer(0) ]],
   device   char *results  [[ buffer(1) ]],
@@ -18,6 +19,7 @@ kernel void check_individual (
 
 kernel void check_pin(
       constant  unsigned short *constants [[ buffer(0) ]],
+      constant  unsigned short *multiupliers [[ buffer(2) ]],  
       device    char *resultArray         [[ buffer(1) ]],
                 uint3 index               [[ thread_position_in_grid ]]
   ) {
@@ -75,22 +77,7 @@ kernel void check_pin(
     int sum = 0;
     
     for (int i = 0; i < 10; i += 2) {
-        /*
-        if (i % 2 == 0) {
-          if (pin[i] * 2 > 9) {
-            sum += pin[i] * 2 % 10 + 1;
-          } 
-          else
-          {
-            sum += pin[i] * 2;
-          }
-        }
-        else 
-        {
-          sum += pin[i];
-        }
-        */
-        sum += pin[i] + (pin[i] + ((pin[i] >= 5) * (-9)));
+        sum += multiupliers[pin[i]];
     }
 
     for (int i = 1; i < 10; i += 2) {

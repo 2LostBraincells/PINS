@@ -1,5 +1,5 @@
 use metal::*;
-use std::time::{Instant, Duration};
+use std::time::Instant;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -22,6 +22,8 @@ const MONTHS: u16 = 100;
 const DAYS: u16 = 100;
 
 const TOTAL: usize = YEARS as usize * MONTHS as usize * DAYS as usize;
+
+const MULTIPLIERS: [u16;10] = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
 
 
 fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
@@ -53,17 +55,17 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     while *reservation.lock().unwrap() != id {}
 
-    let mut offsets: [u16; 7] = [
+    let mut offsets_buffer: [u16; 7] = [
         START_YEAR,
         START_MONTH,
         START_DAY,
         0,
         YEARS,
         MONTHS,
-        DAYS
+        DAYS,
     ];
 
-    let length = offsets.len() as u64;
+    let length = offsets_buffer.len() as u64;
     let size = length * core::mem::size_of::<u16>() as u64;
 
     // Setup GPU
@@ -82,9 +84,16 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     // setup buffers
     let buffer_offsets = device.new_buffer_with_data(
-        unsafe { mem::transmute(offsets.as_ptr()) }, // bytes
+        unsafe { mem::transmute(offsets_buffer.as_ptr()) }, // bytes
         size, // length
         MTLResourceOptions::StorageModeShared, // Storage mode
+    );
+
+
+    let buffer_multipliers = device.new_buffer_with_data(
+        unsafe { mem::transmute(MULTIPLIERS.as_ptr()) },
+        10 * core::mem::size_of::<u16>() as u64,
+        MTLResourceOptions::StorageModeShared,
     );
 
     
@@ -107,7 +116,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
     for i in (id..CUBOIDS).step_by(steps.into()) {
 
         // Update checksum
-        offsets[3] = i;
+        offsets_buffer[3] = i;
 
         unsafe { 
             let ptr = a_ptr.offset(3);
@@ -124,6 +133,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
         // init buffers
         encoder.set_buffer(0, Some(&buffer_offsets), 0);
         encoder.set_buffer(1, Some(&buffer_result), 0);
+        encoder.set_buffer(2, Some(&buffer_multipliers), 0);
 
 
         // Compute
@@ -134,7 +144,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
 
         // results
-        let parsed = parser::parse(&offsets, buffer_result.clone());
+        let parsed = parser::parse(&offsets_buffer, buffer_result.clone());
         let bytes = parsed.as_bytes();
 
 
