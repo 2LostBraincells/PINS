@@ -48,10 +48,10 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
 
     // initalize timers
     // let mut setup_timer = Duration::new(0, 0);
-    // let mut compute_timer = Duration::new(0, 0);
-    // let mut parse_timer = Duration::new(0, 0);
+    let mut compute_timer = Duration::new(0, 0);
+    let mut parse_timer = Duration::new(0, 0);
     // let mut wait_timer = Duration::new(0, 0);
-    // let mut write_timer = Duration::new(0, 0);
+    let mut write_timer = Duration::new(0, 0);
 
 
     // while *reservation.lock().unwrap() != id {}
@@ -108,11 +108,9 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
 
     let a_ptr = buffer_offsets.contents() as *mut u16;
 
-    // *reservation.lock().unwrap() = (id != (steps - 1)) as u16 * (id + 1);
     println!("{}: Computing {} blocks", id, ((CUBOIDS - id - 1) / steps)+1);
     for i in (id..CUBOIDS).step_by(steps.into()) {
 
-        // while *reservation.lock().unwrap() != id {}
         // Update checksum
         offsets_buffer[3] = i;
 
@@ -138,26 +136,36 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
         encoder.dispatch_threads(grid_size, group);
         encoder.end_encoding();
 
-        // let now = Instant::now();
+        let now = Instant::now();
         buffer.commit();
         buffer.wait_until_completed();
-        // compute_timer += now.elapsed();
+        compute_timer += now.elapsed();
 
 
         // results
+        let now = Instant::now();
         let parsed = parser::parse(&offsets_buffer, buffer_result.clone());
+        parse_timer += now.elapsed();
         let bytes = parsed.as_bytes();
 
 
         // wait for self's turn to write to file
         
         // write pre-computed contents to file
+        let now = Instant::now();
         file.lock().unwrap().write_all(bytes).unwrap();
+        write_timer += now.elapsed();
 
         // increment index
     }
 
-    // println!("{}: Done! {}ms was spent computing", id, compute_timer.as_millis());
+    println!(
+        "{}: Done! {:03}ms {:03}ms {:03}ms ",
+        id,
+        compute_timer.as_millis(),
+        parse_timer.as_millis(),
+        write_timer.as_millis(),
+        );
 }
 
 fn main() {
@@ -179,10 +187,13 @@ fn main() {
         workers.push(handle);
     }
 
+    println!("\nAll threads spawned\n");
+
     // wait for threads to finish
     for handle in workers {
         handle.join().unwrap();
     }
 
-    println!("Done! ({}ms)", now.elapsed().as_millis());
+    println!("I: Done! compu parse write");
+    println!("Final: {}ms", now.elapsed().as_millis())
 }
