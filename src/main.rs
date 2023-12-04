@@ -120,12 +120,6 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
     println!("{}: Computing {} blocks", id, ((CUBOIDS - id - 1) / steps)+1);
     for i in (id..CUBOIDS).step_by(steps.into()) {
 
-        // Update checksum offset value
-        offsets_buffer[3] = i;
-        unsafe { 
-            let ptr = a_ptr.offset(3);
-            *ptr = i;
-        }
 
         // cycle setup
         let buffer = queue.new_command_buffer();
@@ -145,6 +139,14 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
         // Compute
         let now = Instant::now();
         buffer.commit();
+
+        // Update checksum offset value
+        offsets_buffer[3] = i;
+        unsafe { 
+            let ptr = a_ptr.offset(3);
+            *ptr = i;
+        }
+
         buffer.wait_until_completed();
         compute_timer += now.elapsed();
 

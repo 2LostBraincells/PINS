@@ -69,15 +69,18 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
                 pin[5] = ((actual_day % 10) + 48) as u8; // xxxxXO-xxxx
 
                 
+                // assume the bytes in the pin array are formated correctly
+                // They should be, not quite sure tho
                 let str = unsafe{ std::str::from_utf8_unchecked(pin) };
                 
                 parsed.push_str(str);
             }
         }
 
-
         // split lines based on year
         parsed.push('\n');
     }
+
+    // returne the parsed string
     parsed
 }
