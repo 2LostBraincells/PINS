@@ -1,15 +1,19 @@
 use metal::*;
 #[allow(unused_imports)]
 use std::time::{Instant, Duration};
+use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
+use std::path::Path;
 use std::thread;
 use std::mem;
 
 mod gpu;
 mod parser;
 mod testing;
+
+const OUTPUT: &str = "output.txt";
 
 const CUBOIDS: u16 = 10_000;
 const WORKERS: usize = 8;
@@ -171,6 +175,18 @@ fn worker(file: Arc<Mutex<std::fs::File>>, id: u16, steps: u16) {
 fn main() {
 
     let now = Instant::now();
+    
+    // check if the output file exists
+    let exists = Path::new(OUTPUT).exists();
+    if !exists {
+        println!("Not output file, creating {}", OUTPUT);
+    } else {
+        println!("Emptying {}", OUTPUT)
+    }
+
+    let file = File::create(OUTPUT).expect("Unable to open file");
+    file.set_len(0).expect("Unable to empty file");
+
 
     let mut workers = vec![];
 
