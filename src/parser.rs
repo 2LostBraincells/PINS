@@ -28,6 +28,9 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
             .try_into().unwrap()
     };
 
+    let end_year = start_year + years;
+    let end_month = start_month + months;
+
 
     // pre allocate full string
     let mut parsed = String::with_capacity(1_000_000);
@@ -35,26 +38,19 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
 
 
 
-    // create a 11 byte array of char codes
+    // create a 12 byte array of char codes so that we can change the char codes for the date individualy
+    // instead of having to create the entire string for every loop
     let mut base = format!("000000-{:04} ", checksum);
-    let pin = unsafe { base.as_bytes_mut() };
-    
+    let pin: &mut [u8] = unsafe { base.as_bytes_mut() };
+
+    for year in start_year..end_year {
+        pin[0] = ((year / 10) + 48) as u8; // OXxxxx-xxxx
+        pin[1] = ((year % 10) + 48) as u8; // XOxxxx-xxxx
 
 
-    for year in start_year..start_year + years {
-
-        // change the digits for the year
-        pin[0] = ((year / 10) + 48) as u8;
-        pin[1] = ((year % 10) + 48) as u8;
-
-
-
-        for month in start_month..start_month + months {
-
-            // change the digits for the month
-            pin[2] = ((month / 10) + 48) as u8;
-            pin[3] = ((month % 10) + 48) as u8;
-
+        for month in start_month..end_month {
+            pin[2] = ((month / 10) + 48) as u8; // xxOXxx-xxxx
+            pin[3] = ((month % 10) + 48) as u8; // xxXOxx-xxxx
             
 
             for day in 0..days {
@@ -69,8 +65,8 @@ pub fn parse(offsets: &[u16; 7], results: Buffer) -> String {
                 let actual_day = start_day + day;
 
                 // change the digits for the day
-                pin[4] = ((actual_day / 10) + 48) as u8;
-                pin[5] = ((actual_day % 10) + 48) as u8;
+                pin[4] = ((actual_day / 10) + 48) as u8; // xxxxOX-xxxx
+                pin[5] = ((actual_day % 10) + 48) as u8; // xxxxXO-xxxx
 
                 
                 let str = unsafe{ std::str::from_utf8_unchecked(pin) };
