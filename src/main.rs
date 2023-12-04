@@ -112,7 +112,7 @@ fn worker(reservation: Arc<Mutex<u16>>, id: u16, steps: u16) {
 
     let a_ptr = buffer_offsets.contents() as *mut u16;
 
-    println!("{}: Computing...", id);
+    println!("{}: Computing {} blocks", id, ((CUBOIDS - id - 1) / steps)+1);
     for i in (id..CUBOIDS).step_by(steps.into()) {
 
         // Update checksum
