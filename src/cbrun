@@ -11,4 +11,4 @@ rm output.txt
 touch output.txt
 
 echo "\n==== running with time ====\n"
-time ../target/release/pinv
+../target/release/pinv

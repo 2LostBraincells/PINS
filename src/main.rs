@@ -195,5 +195,5 @@ fn main() {
     }
 
     println!("I: Done! compu parse write");
-    println!("Final: {}ms", now.elapsed().as_millis())
+    println!("\nFinal: {}ms", now.elapsed().as_millis())
 }
