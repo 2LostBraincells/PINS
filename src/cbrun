@@ -10,5 +10,5 @@ echo "\n==== clearing output.txt ====\n"
 rm output.txt
 touch output.txt
 
-echo "\n==== running with time ====\n"
+echo "\n==== running ====\n"
 ../target/release/pinv
