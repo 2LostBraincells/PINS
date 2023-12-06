@@ -4,21 +4,14 @@ A hyper optimized program for validating Personal Identity Numbers (or pinv for 
 
 ## Usage
 
-### First time
+### Building
 To build the project make sure cargo and xcrun are installed then run these commands
 ```
 cd src
-./makelib.sh
-cargo build
+./cbrun
 ```
 
+This will compile the compute shader and main program. I will then run the program.
 The compiled executable can then be found in `target/release/build` under the name `pinv`
 
-### Benchmark
-To get a rough benchmark run
-```
-cd src
-./make.sh
-```
-
-This will compile the shaders, build the project and run it using the unix `time` command wich will output three different time values.
+To run the program you can either use the `./run` command in the src folder, or find the executable in `target/release/build` under the name `pinv`
