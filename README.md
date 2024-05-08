@@ -11,7 +11,7 @@ cd src
 ./cbrun
 ```
 
-This will compile the compute shader and main program. I will then run the program.
+This will compile the compute shader and main program. It will then run the program.
 The compiled executable can then be found in `target/release/build` under the name `pinv`
 
 To run the program you can either use the `./run` command in the src folder, or find the executable in `target/release/build` under the name `pinv`
